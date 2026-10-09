@@ -1,3 +1,6 @@
+#[path = "support/tempdir.rs"]
+mod fixtures;
+
 use herdr_idle_inhibitor::herdr::{protocol, transport};
 use tokio::io::AsyncWriteExt;
 #[tokio::test]
@@ -30,7 +33,7 @@ async fn partial_oversized_and_non_utf8_frames_are_not_empty_observations() {
 #[tokio::test]
 async fn stalled_native_peer_is_bounded_by_request_deadline() {
     use interprocess::local_socket::tokio::prelude::*;
-    let dir = tempfile::tempdir().unwrap();
+    let dir = fixtures::tempdir();
     let endpoint = dir.path().join("stall.sock").to_string_lossy().into_owned();
     let listener = herdr_idle_inhibitor::runtime::ipc::test_listener(&endpoint).unwrap();
     let server = tokio::spawn(async move {

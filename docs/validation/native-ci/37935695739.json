@@ -1,0 +1,458 @@
+{
+  "databaseId": 37935695739,
+  "headSha": "dda6a17c0f528ee3bc2e2569fe20336e35dc4201",
+  "status": "completed",
+  "conclusion": "cancelled",
+  "url": "https://github.com/chpock/herdr-idle-inhibitor/actions/runs/37935695739",
+  "disposition": "Linux and Windows succeeded; the parent cancelled stalled macOS tests. This run does not pass the four-platform gate.",
+  "jobs": [
+    {
+      "databaseId": 113837050053,
+      "name": "x86_64-apple-darwin",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "startedAt": "2026-10-09T13:16:43Z",
+      "completedAt": "2026-10-09T13:36:53Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Fix macOS SDK selection",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Record native baseline and reject accidental cross execution",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Validate workflow",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Formatting",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Lints",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Unit and integration tests",
+          "status": "completed",
+          "conclusion": "cancelled"
+        },
+        {
+          "name": "Native request/assertion and notification lifecycle probes",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Packaging contract tests",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Release build",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Build-free bundle with checksums and matching vendored source",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Verify unpacked executable and vendored source offline",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Post Run actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Post Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "ordinary_tests_passed": null,
+      "native_probe_tests_passed": null,
+      "excerpts": [
+        "x86_64-apple-darwin\tUnit and integration tests\t2026-10-09T13:20:03.3825910Z test controller::native_tests::delayed_acquire_is_released_after_pause_invalidates_generation ... FAILED",
+        "x86_64-apple-darwin\tUnit and integration tests\t2026-10-09T13:20:03.3977500Z test controller::tests::queued_pre_gap_results_are_invalidated_before_tick ... FAILED",
+        "x86_64-apple-darwin\tUnit and integration tests\t2026-10-09T13:20:03.3987600Z test controller::tests::registered_endpoints_survive_empty_discovery_and_handoff ... FAILED",
+        "x86_64-apple-darwin\tUnit and integration tests\t2026-10-09T13:21:03.4594350Z test controller::tests::short_suspend_resume_releases_and_requires_fresh_root_and_snapshot has been running for over 60 seconds"
+      ]
+    },
+    {
+      "databaseId": 113837050444,
+      "name": "x86_64-pc-windows-msvc",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-10-09T13:16:42Z",
+      "completedAt": "2026-10-09T13:23:25Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Fix macOS SDK selection",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Record native baseline and reject accidental cross execution",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Validate workflow",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Formatting",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Lints",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Unit and integration tests",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Native request/assertion and notification lifecycle probes",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Packaging contract tests",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Release build",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build-free bundle with checksums and matching vendored source",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify unpacked executable and vendored source offline",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "ordinary_tests_passed": 41,
+      "native_probe_tests_passed": 2,
+      "excerpts": [
+        "x86_64-pc-windows-msvc\tNative request/assertion and notification lifecycle probes\t2026-10-09T13:19:35.9738819Z test backend::windows::tests::native_notification_registration_is_released ... ok",
+        "x86_64-pc-windows-msvc\tNative request/assertion and notification lifecycle probes\t2026-10-09T13:19:35.9739533Z test backend::windows::tests::native_request_is_balanced ... ok",
+        "x86_64-pc-windows-msvc\tVerify unpacked executable and vendored source offline\t2026-10-09T13:23:18.9761465Z {\"checksum_matches\": true, \"build_free_manifest\": true, \"status_without_cargo_or_herdr_context\": true, \"unavailable_not_zero\": true, \"created_query_home_entries\": 0, \"vendored_source_offline_check\": true}"
+      ]
+    },
+    {
+      "databaseId": 113837050518,
+      "name": "aarch64-apple-darwin",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "startedAt": "2026-10-09T13:16:45Z",
+      "completedAt": "2026-10-09T13:37:06Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Fix macOS SDK selection",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Record native baseline and reject accidental cross execution",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Validate workflow",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Formatting",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Lints",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Unit and integration tests",
+          "status": "completed",
+          "conclusion": "cancelled"
+        },
+        {
+          "name": "Native request/assertion and notification lifecycle probes",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Packaging contract tests",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Release build",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Build-free bundle with checksums and matching vendored source",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Verify unpacked executable and vendored source offline",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Post Run actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Post Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "ordinary_tests_passed": null,
+      "native_probe_tests_passed": null,
+      "excerpts": [
+        "aarch64-apple-darwin\tUnit and integration tests\t2026-10-09T13:18:16.4522920Z test controller::native_tests::delayed_acquire_is_released_after_pause_invalidates_generation ... FAILED",
+        "aarch64-apple-darwin\tUnit and integration tests\t2026-10-09T13:18:16.4615060Z test controller::tests::registered_endpoints_survive_empty_discovery_and_handoff ... FAILED",
+        "aarch64-apple-darwin\tUnit and integration tests\t2026-10-09T13:18:16.4617480Z test controller::tests::queued_pre_gap_results_are_invalidated_before_tick ... FAILED",
+        "aarch64-apple-darwin\tUnit and integration tests\t2026-10-09T13:19:16.5235700Z test controller::tests::short_suspend_resume_releases_and_requires_fresh_root_and_snapshot has been running for over 60 seconds"
+      ]
+    },
+    {
+      "databaseId": 113837050546,
+      "name": "x86_64-unknown-linux-gnu",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-10-09T13:16:41Z",
+      "completedAt": "2026-10-09T13:20:11Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Fix macOS SDK selection",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Record native baseline and reject accidental cross execution",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Validate workflow",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Formatting",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Lints",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Unit and integration tests",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Native request/assertion and notification lifecycle probes",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Packaging contract tests",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Release build",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build-free bundle with checksums and matching vendored source",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify unpacked executable and vendored source offline",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "ordinary_tests_passed": 47,
+      "native_probe_tests_passed": null,
+      "excerpts": [
+        "x86_64-unknown-linux-gnu\tVerify unpacked executable and vendored source offline\t2026-10-09T13:20:07.6501007Z {\"checksum_matches\": true, \"build_free_manifest\": true, \"status_without_cargo_or_herdr_context\": true, \"unavailable_not_zero\": true, \"created_query_home_entries\": 0, \"vendored_source_offline_check\": true}"
+      ]
+    }
+  ]
+}

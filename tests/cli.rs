@@ -1,3 +1,6 @@
+#[path = "support/tempdir.rs"]
+mod fixtures;
+
 use herdr_idle_inhibitor::runtime::{
     ipc::{self, Operation},
     paths::Paths,
@@ -17,7 +20,7 @@ impl Drop for Children {
 }
 #[tokio::test]
 async fn actual_status_is_read_only_and_concurrent_processes_have_one_owner() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = fixtures::tempdir();
     let binary = env!("CARGO_BIN_EXE_herdr-idle-inhibitor");
     let command = || {
         let mut c = Command::new(binary);

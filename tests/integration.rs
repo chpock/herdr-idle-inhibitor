@@ -1,3 +1,6 @@
+#[path = "support/tempdir.rs"]
+mod fixtures;
+
 use herdr_idle_inhibitor::{
     backend::{Kind, OwnedRequest, PowerBackend},
     herdr::{discovery::Registration, transport::read_frame},
@@ -115,7 +118,7 @@ async fn wait_status(
 }
 #[tokio::test]
 async fn real_transport_controller_replay_two_servers_pause_and_read_counters() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = fixtures::tempdir();
     let root = dir.path().to_string_lossy().into_owned();
     let endpoint = |n: &str| {
         dir.path()
@@ -335,7 +338,7 @@ async fn minimized_live_capture_replays_through_controller_and_private_status() 
         .filter(|a| a["agent_status"] == "working")
         .count();
     assert!(expected > 0);
-    let dir = tempfile::tempdir().unwrap();
+    let dir = fixtures::tempdir();
     let endpoint = |n: &str| {
         dir.path()
             .join(format!("{n}.sock"))

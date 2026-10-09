@@ -1046,6 +1046,10 @@ pub async fn serve_with(paths: Paths, backend: Box<dyn PowerBackend>) -> anyhow:
 }
 
 #[cfg(test)]
+#[path = "../tests/support/tempdir.rs"]
+mod fixtures;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     fn controller(dir: &std::path::Path) -> Controller {
@@ -1074,7 +1078,7 @@ mod tests {
     }
     #[tokio::test]
     async fn failed_config_operations_remain_in_shared_status_until_successful_reload() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = fixtures::tempdir();
         let mut c = controller(dir.path());
         let original = std::fs::read_to_string(&c.paths.config).unwrap();
         let (native, _) = mpsc::channel(8);
@@ -1158,7 +1162,7 @@ mod tests {
     }
     #[tokio::test]
     async fn short_suspend_resume_releases_and_requires_fresh_root_and_snapshot() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = fixtures::tempdir();
         let mut c = controller(dir.path());
         c.config.config.linux.backend = "hypridle".into();
         c.config.config.linux.hypridle_integration_confirmed = true;
@@ -1190,7 +1194,12 @@ mod tests {
         c.result(snapshot(0), 0);
         let (tx, mut commands) = mpsc::channel(8);
         c.evaluate(1, &tx);
-        let NativeCommand::Acquire { generation, .. } = commands.recv().await.unwrap() else {
+        let NativeCommand::Acquire { generation, .. } =
+            tokio::time::timeout(Duration::from_secs(5), commands.recv())
+                .await
+                .expect("expected native command within five seconds")
+                .unwrap()
+        else {
             panic!("initial acquire required");
         };
         let result = |generation, owned, acquired, released| ResultEvent::Native {
@@ -1206,7 +1215,12 @@ mod tests {
         c.result(result(generation, true, true, false), 2);
         // Milliseconds, not the 10-second fallback gap threshold.
         c.power_event(backend::PowerEvent::Suspend, 3, &tx);
-        let NativeCommand::Release { generation } = commands.recv().await.unwrap() else {
+        let NativeCommand::Release { generation } =
+            tokio::time::timeout(Duration::from_secs(5), commands.recv())
+                .await
+                .expect("expected native command within five seconds")
+                .unwrap()
+        else {
             panic!("suspend must release");
         };
         c.result(result(generation, false, false, true), 4);
@@ -1240,7 +1254,12 @@ mod tests {
         assert!(commands.try_recv().is_err());
         c.result(snapshot(server_epoch), 8);
         c.evaluate(8, &tx);
-        let NativeCommand::Acquire { generation, .. } = commands.recv().await.unwrap() else {
+        let NativeCommand::Acquire { generation, .. } =
+            tokio::time::timeout(Duration::from_secs(5), commands.recv())
+                .await
+                .expect("expected native command within five seconds")
+                .unwrap()
+        else {
             panic!("fresh post-resume round must reacquire");
         };
         c.result(result(generation, true, true, false), 9);
@@ -1249,7 +1268,7 @@ mod tests {
     }
     #[tokio::test]
     async fn registered_endpoints_survive_empty_discovery_and_handoff() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = fixtures::tempdir();
         let mut c = controller(dir.path());
         let a = registration(dir.path(), "a.sock");
         let b = registration(dir.path(), "b.sock");
@@ -1287,7 +1306,7 @@ mod tests {
     #[cfg(unix)]
     #[tokio::test]
     async fn configured_alias_and_canonical_bootstrap_have_one_identity() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = fixtures::tempdir();
         let actual = dir.path().join("actual");
         std::fs::create_dir(&actual).unwrap();
         std::os::unix::fs::symlink(&actual, dir.path().join("alias")).unwrap();
@@ -1310,7 +1329,7 @@ mod tests {
     }
     #[tokio::test]
     async fn queued_pre_gap_results_are_invalidated_before_tick() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = fixtures::tempdir();
         let mut c = controller(dir.path());
         let r = registration(dir.path(), "a.sock");
         let e = r.endpoint.clone();
@@ -1350,7 +1369,7 @@ mod tests {
     }
     #[tokio::test]
     async fn pure_query_never_invalidates_generations_or_schedules_io() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = fixtures::tempdir();
         let mut c = controller(dir.path());
         let (tx, mut native) = mpsc::channel(4);
         let (reply, rx) = tokio::sync::oneshot::channel();
@@ -1434,7 +1453,7 @@ mod native_tests {
     }
     #[tokio::test]
     async fn delayed_acquire_is_released_after_pause_invalidates_generation() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = fixtures::tempdir();
         let paths = Paths {
             config: dir.path().join("config.toml"),
             state: dir.path().join("state"),
@@ -1497,7 +1516,9 @@ mod native_tests {
             }),
         );
         c.evaluate(1, &commands);
-        started.notified().await;
+        tokio::time::timeout(Duration::from_secs(5), started.notified())
+            .await
+            .expect("acquisition should start within five seconds");
         let (reply, rx) = tokio::sync::oneshot::channel();
         c.control(
             Incoming {

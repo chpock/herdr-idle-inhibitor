@@ -1,3 +1,6 @@
+#[path = "support/tempdir.rs"]
+mod fixtures;
+
 use herdr_idle_inhibitor::runtime::{
     ipc::{self, Operation},
     paths::Paths,
@@ -5,7 +8,7 @@ use herdr_idle_inhibitor::runtime::{
 };
 #[tokio::test]
 async fn lock_inode_survives_and_loser_cannot_remove_socket() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = fixtures::tempdir();
     let endpoint = dir
         .path()
         .join("control.sock")
@@ -40,7 +43,7 @@ async fn lock_inode_survives_and_loser_cannot_remove_socket() {
 #[tokio::test]
 async fn unsafe_socket_substitution_is_not_deleted() {
     use std::os::unix::fs::symlink;
-    let dir = tempfile::tempdir().unwrap();
+    let dir = fixtures::tempdir();
     let socket = dir.path().join("not-a-socket");
     let target = dir.path().join("target");
     std::fs::write(&target, "valuable").unwrap();
@@ -64,7 +67,7 @@ async fn unsafe_socket_substitution_is_not_deleted() {
 async fn malformed_and_empty_responses_are_not_empty_work() {
     use interprocess::local_socket::tokio::prelude::*;
     use tokio::io::AsyncWriteExt;
-    let dir = tempfile::tempdir().unwrap();
+    let dir = fixtures::tempdir();
     for (data, code) in [(b"".as_slice(), 3), (b"{}", 5), (b"{}\n", 5)] {
         let endpoint = dir
             .path()
