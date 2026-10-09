@@ -71,7 +71,7 @@ macOS bundles are unsigned/unnotarized; quarantine or Gatekeeper can prevent exe
    herdr plugin action invoke show --plugin herdr-idle-inhibitor
    ```
 
-   **Current limitation:** the action's popup-opening command fails argument parsing on Herdr 0.9.3. Its monitor-activation step precedes that command; inspect the [known popup issue](troubleshooting.md#popup-does-not-open) and query status rather than assuming activation failed or succeeded.
+   The action activates the shared monitor before asking Herdr to open the popup. If opening fails, inspect [Troubleshooting](troubleshooting.md#popup-does-not-open) and query status: a missing popup does not prove that monitoring stopped.
 
 3. On Hyprland, apply [Hypridle setup](hypridle-setup.md). The plugin refuses to acquire until `linux.hypridle_integration_confirmed` is true. Settings can also be edited in the [configuration file](configuration.md) and loaded at monitor startup.
 4. Check work, Pause and native request state separately. A running monitor is not itself proof of idle-sleep protection.

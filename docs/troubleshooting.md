@@ -22,17 +22,11 @@ Exit 0 can include partial observation, Pause or a backend failure. Exit 3 means
 
 ## Popup does not open
 
-**Known command-argument defect:** the current `show` action activates the monitor, then invokes:
+The `show` action activates the shared monitor, then asks Herdr to open the plugin's `status` pane. An attached Herdr UI and an available popup slot are required.
 
-```text
-herdr plugin pane open herdr-idle-inhibitor status
-```
+Inspect Herdr's own error output in the action log. The plugin reports a subprocess exit status or launch error; it does not assume that every rejection means another popup is open. For `ui_busy`, close the other popup and retry. If no UI is attached, attach one before invoking the action.
 
-Herdr 0.9.3 requires the `--plugin` and `--entrypoint` options instead of those positional arguments, so it rejects this call with `unknown option: herdr-idle-inhibitor`. This failure occurs at argument parsing, not because of another popup. A generic action error may nevertheless mention `ui_busy` or no attached UI.
-
-The action's monitor-activation step precedes this parsing failure. Use the read-only status command to check its state; do not conclude that a missing popup means monitoring stopped or that activation means a native request was accepted. [File an issue](https://github.com/chpock/herdr-idle-inhibitor/issues) for this known opening-command problem. Internal underscore roles are not a supported alternative management API.
-
-Separately, Herdr cannot open this popup when no UI client is attached or another popup occupies the slot. Close the other popup or attach a UI and retry after distinguishing those conditions from the command-argument defect.
+Monitor activation precedes the popup request. Use the read-only status command to check its state: a missing popup does not prove that monitoring stopped, and activation does not prove that a native request was accepted. Internal underscore roles are not a supported alternative management API.
 
 ## Monitor unavailable
 
@@ -52,7 +46,7 @@ A monitor can exit after all installations are disabled, after established absen
 | `config changed externally` | Reload your manual edits before saving from the popup |
 | Resume fails | Fix saving first; failed persistence does not enable new acquisition |
 
-There is no automatic file watcher. See [editing rules](configuration.md#editing-and-persistence); status queries do not Reload. When the popup is affected by its opening issue, load manual changes through the normal disable/stop/reactivate sequence rather than expecting a hidden hot reload.
+There is no automatic file watcher. See [editing rules](configuration.md#editing-and-persistence); status queries do not Reload. If the popup is unavailable, load manual changes through the normal disable/stop/reactivate sequence rather than expecting a hidden hot reload.
 
 ## Linux setup or backend failure
 

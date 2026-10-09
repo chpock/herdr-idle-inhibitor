@@ -9,6 +9,7 @@ use herdr_idle_inhibitor::{
 };
 use std::{
     io::{self, Write},
+    path::Path,
     process::ExitCode,
 };
 #[derive(Parser)]
@@ -93,13 +94,76 @@ async fn main() -> ExitCode {
 async fn open() -> anyhow::Result<()> {
     let r = herdr_idle_inhibitor::herdr::discovery::Registration::from_env()?;
     bootstrap::ensure(r.clone()).await?;
-    let status = tokio::process::Command::new(&r.herdr_bin)
-        .args(["plugin", "pane", "open", "herdr-idle-inhibitor", "status"])
+    let status = popup_command(&r.herdr_bin)
         .status()
-        .await?;
+        .await
+        .map_err(|error| anyhow::anyhow!("Cannot execute Herdr popup command: {error}"))?;
     anyhow::ensure!(
         status.success(),
-        "Cannot open popup: another popup may be open (ui_busy), or no Herdr UI is attached"
+        "Herdr popup command failed ({status}); see Herdr's error output"
     );
     Ok(())
+}
+
+fn popup_command(herdr_bin: &Path) -> tokio::process::Command {
+    let mut command = tokio::process::Command::new(herdr_bin);
+    command.args([
+        "plugin",
+        "pane",
+        "open",
+        "--plugin",
+        herdr_idle_inhibitor::herdr::discovery::PLUGIN_ID,
+        "--entrypoint",
+        "status",
+    ]);
+    command
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn popup_command_uses_named_flags_and_the_manifest_entrypoint() {
+        let manifest: toml::Value = toml::from_str(include_str!("../herdr-plugin.toml")).unwrap();
+        let program = Path::new("herdr");
+        let command = popup_command(program);
+        let command = command.as_std();
+        assert_eq!(command.get_program(), program);
+        let arguments: Vec<_> = command
+            .get_args()
+            .map(|arg| arg.to_str().unwrap())
+            .collect();
+        assert_eq!(
+            arguments,
+            [
+                "plugin",
+                "pane",
+                "open",
+                "--plugin",
+                "herdr-idle-inhibitor",
+                "--entrypoint",
+                "status"
+            ]
+        );
+        assert_eq!(manifest["id"].as_str(), Some(arguments[4]));
+        let pane = manifest["panes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|pane| pane["id"].as_str() == Some(arguments[6]))
+            .unwrap();
+        assert_eq!(pane["placement"].as_str(), Some("popup"));
+        assert_eq!(pane["command"].as_array().unwrap()[1].as_str(), Some("_ui"));
+        let action = manifest["actions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|action| action["id"].as_str() == Some("show"))
+            .unwrap();
+        assert_eq!(
+            action["command"].as_array().unwrap()[1].as_str(),
+            Some("_open")
+        );
+    }
 }

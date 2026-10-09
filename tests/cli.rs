@@ -109,6 +109,22 @@ async fn actual_status_is_read_only_and_concurrent_processes_have_one_owner() {
         .await
         .unwrap();
     assert_eq!(paused.status["control"]["paused"], true);
+    #[cfg(unix)]
+    {
+        check_popup_open_path(dir.path(), &command);
+        let after_popup = ipc::query(&endpoint, Operation::GetStatus { details: false })
+            .await
+            .unwrap();
+        assert_eq!(after_popup.status["control"]["paused"], true);
+        assert_eq!(
+            after_popup.status["diagnostics"]["counters"]["native_acquires"],
+            0
+        );
+        assert_eq!(
+            after_popup.status["diagnostics"]["counters"]["native_releases"],
+            0
+        );
+    }
     drop(children);
     let after = command().args(["status", "--json"]).output().unwrap();
     assert_eq!(after.status.code(), Some(3));
@@ -126,5 +142,93 @@ fn source_manifest_extensionless_windows_entrypoint_resolves_native_exe() {
     assert_eq!(
         String::from_utf8(output.stdout).unwrap().trim(),
         format!("herdr-idle-inhibitor {}", env!("CARGO_PKG_VERSION"))
+    );
+}
+
+#[cfg(unix)]
+fn check_popup_open_path(directory: &std::path::Path, command: &impl Fn() -> Command) {
+    use std::os::unix::fs::PermissionsExt;
+
+    let herdr = directory.join("fake-herdr");
+    let arguments = directory.join("popup-arguments");
+    std::fs::write(
+        &herdr,
+        r#"#!/bin/sh
+if [ "$1 $2 $3" != "plugin pane open" ]; then
+    exit 1
+fi
+printf '%s\n' "$@" > "$POPUP_TEST_ARGUMENTS"
+if [ "$#" -ne 7 ] || [ "$4" != "--plugin" ] || \
+   [ "$5" != "herdr-idle-inhibitor" ] || [ "$6" != "--entrypoint" ] || \
+   [ "$7" != "status" ]; then
+    printf '%s\n' 'fixture: Herdr requires --plugin and --entrypoint' >&2
+    exit 2
+fi
+if [ "$POPUP_TEST_EXIT" != "0" ]; then
+    printf '%s\n' 'fixture: popup request rejected' >&2
+fi
+exit "$POPUP_TEST_EXIT"
+"#,
+    )
+    .unwrap();
+    std::fs::set_permissions(&herdr, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let invoke = |exit: &str| {
+        command()
+            .arg("_open")
+            .env("HERDR_BIN_PATH", &herdr)
+            .env("HERDR_SOCKET_PATH", directory.join("herdr.sock"))
+            .env("HERDR_PLUGIN_ROOT", directory)
+            .env("POPUP_TEST_ARGUMENTS", &arguments)
+            .env("POPUP_TEST_EXIT", exit)
+            .output()
+            .unwrap()
+    };
+
+    let success = invoke("0");
+    assert!(
+        success.status.success(),
+        "{}",
+        String::from_utf8_lossy(&success.stderr)
+    );
+    assert_eq!(
+        std::fs::read_to_string(&arguments)
+            .unwrap()
+            .lines()
+            .collect::<Vec<_>>(),
+        [
+            "plugin",
+            "pane",
+            "open",
+            "--plugin",
+            "herdr-idle-inhibitor",
+            "--entrypoint",
+            "status",
+        ]
+    );
+
+    let rejected = invoke("7");
+    assert!(!rejected.status.success());
+    let error = String::from_utf8(rejected.stderr).unwrap();
+    assert!(error.contains("fixture: popup request rejected"), "{error}");
+    assert!(
+        error.contains("Herdr popup command failed (exit status: 7)"),
+        "{error}"
+    );
+    assert!(!error.contains("another popup may be open"), "{error}");
+    assert!(!error.contains("no Herdr UI is attached"), "{error}");
+
+    // The file still passes registration validation, but its missing interpreter
+    // makes process creation fail even when the test is run as root.
+    std::fs::write(&herdr, "#!/herdr-popup-test-missing-interpreter\n").unwrap();
+    let not_executable = invoke("0");
+    assert!(!not_executable.status.success());
+    let error = String::from_utf8(not_executable.stderr).unwrap();
+    assert!(
+        error.contains("Cannot execute Herdr popup command"),
+        "{error}"
+    );
+    assert!(
+        error.contains(&format!("os error {}", libc::ENOENT)),
+        "{error}"
     );
 }

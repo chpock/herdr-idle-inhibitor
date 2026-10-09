@@ -12,7 +12,7 @@ The supported version is **Hypridle 0.1.8**. The application uses logind `Inhibi
 4. For idle-suspend/hibernate listeners, leave `ignore_inhibit` false (its default) or set it explicitly to false. Do not add a suspend command where none exists.
 5. Keep each existing timeout, command and resume action unchanged. If one listener mixes display-off/locking with suspend, separate its policy intentionally before confirming; do not indiscriminately allow the mixed action to ignore inhibition.
 6. Apply the configuration using your own normal Hypridle/service workflow. This plugin does not perform reloads or restarts for you.
-7. Set **Hypridle integration confirmed** in Settings, or set `hypridle_integration_confirmed = true` in the configuration's `[linux]` section and load it at monitor startup as described in [Configuration](configuration.md#editing-and-persistence). The manual option is necessary while the [popup-opening issue](troubleshooting.md#popup-does-not-open) applies. Confirm only after the listener changes: this is an acknowledgment, not automatic detection or proof of correct configuration. Until confirmed the plugin refuses native acquisition with `setup_required`.
+7. Set **Hypridle integration confirmed** in Settings, or set `hypridle_integration_confirmed = true` in the configuration's `[linux]` section and load it at monitor startup as described in [Configuration](configuration.md#editing-and-persistence). Confirm only after the listener changes: this is an acknowledgment, not automatic detection or proof of correct configuration. Until confirmed the plugin refuses native acquisition with `setup_required`.
 
 ### Illustrative existing-listener edits
 

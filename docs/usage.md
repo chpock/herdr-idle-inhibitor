@@ -27,7 +27,7 @@ Release is not a suspend command. The desktop decides what happens after the plu
 
 ## Popup and controls
 
-The declared Herdr action is **Idle Inhibitor: status and settings** (`show`). Its current opening-command problem is documented under [Popup does not open](troubleshooting.md#popup-does-not-open). The controls below describe the popup itself, not a claim that this action opens successfully on the affected build.
+Open **Idle Inhibitor: status and settings** (`show`) from Herdr's actions. If Herdr cannot open the popup, see [Troubleshooting](troubleshooting.md#popup-does-not-open).
 
 The main view separates:
 

@@ -8,8 +8,6 @@ The supported Herdr API version is **0.9.3**. Older/newer versions are rejected 
 
 Run as the current user on the native host, with one active OS desktop session and any number of registered local Herdr servers. Remote-host control, WSL-to-Windows/container-to-host power bridges, other users' agents, and concurrent mixed-desktop/multi-seat sessions are outside this deployment scope.
 
-The [popup action currently has a command-argument compatibility issue](troubleshooting.md#popup-does-not-open). Successful API observation or native power tests do not imply that installed popup opening has been verified.
-
 ## Platforms
 
 | Platform | Architecture/profile | Native request |

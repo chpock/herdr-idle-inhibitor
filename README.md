@@ -19,7 +19,7 @@ herdr plugin install chpock/herdr-idle-inhibitor
 
 See [Installation](docs/installation.md) for local checkouts, prebuilt bundles, activation, updates and removal. **Hyprland users must complete [Hypridle setup](docs/hypridle-setup.md) before enabling inhibition.**
 
-The plugin action is **Idle Inhibitor: status and settings** (`show`). **Known issue:** its current popup-opening command is incompatible with Herdr 0.9.3's CLI arguments. See [Popup does not open](docs/troubleshooting.md#popup-does-not-open); a failed popup is not proof that the monitor stopped.
+Open **Idle Inhibitor: status and settings** (`show`) from Herdr's actions. Closing the popup does not stop monitoring. For opening failures, see [Troubleshooting](docs/troubleshooting.md#popup-does-not-open).
 
 Query the executable in your installation; Herdr does not add it to PATH:
 
