@@ -1,2 +1,0 @@
-   Compiling herdr-idle-inhibitor v0.1.0 (/w/projects/herdr-idle-inhibitor)
-    Finished `release` profile [optimized] target(s) in 17.69s

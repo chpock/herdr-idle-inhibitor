@@ -1,6 +1,8 @@
 # Public status API, version 1
 
-Status: implemented v1 wire contract, validation boundary and checked-in schema. Part of [the implementation contract](implementation-plan.md). Native Windows/macOS execution and physical sleep certification are not implied; see [validation evidence](validation/end-to-end.md).
+[Home](../README.md) · [Usage](usage.md) · [JSON Schema](../schemas/status-v1.json)
+
+This is the implemented, read-only JSON interface for external consumers. Native request acknowledgment is not a physical sleep guarantee; see [Compatibility](compatibility.md). Herdr does not add the executable to PATH: use [your installation's executable path](installation.md#external-executable-path).
 
 ## Command and side effects
 
@@ -29,7 +31,7 @@ All top-level fields listed below are required, including explicit `null` values
 | `inhibition` | object | Desired policy and separately reported native facts. |
 | `diagnostics` | object or null | Non-sensitive issues, static known limitations, and per-instance counters. |
 
-An **issue** is `{ "code": "stable_machine_code", "message": "Human-readable explanation" }`. Codes are extensible; consumers must not parse the message for policy. Do not include arbitrary upstream payloads, paths, agent text, or terminal escape sequences.
+An **issue** is `{ "code": "stable_machine_code", "message": "Human-readable explanation" }`. Codes are extensible; consumers must not parse the message for policy. Public issues exclude arbitrary upstream payloads, paths, agent text and terminal escape sequences.
 
 ### Monitor and controls
 
@@ -94,16 +96,16 @@ Examples of valid distinctions:
 `diagnostics` contains:
 
 - `issues`: an array of issues, for example `discovery_failed`, `snapshot_stale`, `invalid_config`, `setup_required`, `unsupported_profile`, `backend_unavailable`, `desktop_suppressed`, `pause_not_persisted`.
-- `known_limitations`: an array of static identifiers. Windows includes `windows_modern_standby_battery`; this describes a documented conditional limitation, **not** a detected current condition. Other backends use an empty list unless a separate limitation was explicitly accepted.
+- `known_limitations`: an array of static conditional identifiers. Windows includes `windows_modern_standby_battery`; the selected KDE adapter includes `kde_powerdevil_suppressed_owner_cleanup`. These describe [platform limitations](compatibility.md), **not** detection of the current power source, hardware model or an orphaned request. Other adapters currently use an empty list; consumers allow unknown additive identifiers.
 - `counters`: nonnegative per-instance integers for `status_reads`, `discovery_attempts`, `discovery_failures`, `snapshot_initial`, `snapshot_poll`, `snapshot_hook`, `snapshot_resume`, `snapshot_valid`, `snapshot_failed`, `old_results_ignored`, `hints_received`, `hints_coalesced`, `native_acquires`, `native_releases`, `native_failures`, `backend_losses`. Additions are allowed; counters reset with `instance_id`.
 
-Counter meanings are operational: `snapshot_*` origins count launched reads; `snapshot_valid` counts validated current-generation snapshots committed to observation; `snapshot_failed` counts read/validation failures; `old_results_ignored` counts discarded stale-generation results rather than committed snapshots. `hints_coalesced` counts hints absorbed without a separate scheduled read. `native_acquires` counts successful ownership acquisition (including a KDE pending cookie), `native_releases` counts relinquished owned resources, and `native_failures` counts failed adapter operations, not a policy refusal to acquire without work/setup. The dead process cannot increment counters after an OS kill; independent OS observations prove that cleanup.
+Counter meanings are operational: `snapshot_*` origins count launched reads; `snapshot_valid` counts validated current-generation snapshots committed to observation; `snapshot_failed` counts read/validation failures; `old_results_ignored` counts discarded stale-generation results rather than committed snapshots. `hints_coalesced` counts hints absorbed without a separate scheduled read. `native_acquires` counts successful ownership acquisition (including a KDE pending cookie), `native_releases` counts relinquished owned resources, and `native_failures` counts failed adapter operations, not a policy refusal to acquire without work/setup. A terminated process cannot increment counters; its last counter values are not proof of native cleanup.
 
 A read may age the returned observation view but cannot use that read as a trigger for Herdr I/O or a policy action. `snapshot_seq`/evaluation metadata and native facts refer to the monitor's last evaluation; diagnostic query counts can advance independently. Scheduled timers, not public readers, perform deadline transitions.
 
 ## Illustrative successful response
 
-This is a synthetic contract example, not recorded runtime evidence.
+Example of a successful response with current work and a native request:
 
 ```json
 {
@@ -167,7 +169,7 @@ This is a synthetic contract example, not recorded runtime evidence.
 
 ## Unavailable response
 
-Emit `available = false`, a query-level issue, `monitor/control/diagnostics = null`; keep observation/inhibition objects with:
+An unavailable response has `available = false`, a query-level issue, and `monitor/control/diagnostics = null`. Observation/inhibition objects remain present with:
 
 - observation: the declared scope, `work = "unknown"`, `complete = false`, all numeric/count/age fields null;
 - inhibition: `desired/resource_owned/backend = null`, reason `unavailable`, request state `unknown`, both deadlines and native `last_error` null.
@@ -185,10 +187,6 @@ Never synthesize a stopped monitor as zero working agents or a successfully rele
 | `4` | Query deadline expired. JSON error code `query_timeout`. |
 | `5` | Permission, framing, protocol-version, or other query I/O failure. JSON code identifies `permission_denied`, `protocol_error`, `incompatible_monitor`, or `query_io_error`. |
 
-An empty reply is unavailable; a partial/malformed/oversized reply is a protocol failure. Neither is a successful empty observation. Stable field meaning, type, nullability and the three work values cannot change within schema v1. Additive fields/counters/issue codes are allowed; consumers ignore additions and conservatively reject unknown incompatible versions. A breaking change requires an explicit v2 contract and compatibility tests, not merely a changed app version.
+An empty reply is unavailable; a partial/malformed/oversized reply is a protocol failure. Neither is a successful empty observation. Stable field meaning, type, nullability and the three work values cannot change within schema v1. Additive fields/counters/issue codes are allowed; consumers ignore additions and conservatively reject unknown incompatible versions. A breaking change requires a new schema version, not merely a changed app version.
 
-Before release, implement a checked-in JSON Schema and golden success/unavailable/error examples from this contract. Test the real CLI's complete stdout, exit code and lack of operational side effects; testing only a DTO serializer is insufficient.
-
-## Accepted KDE limitation identifier
-
-After P4 source verification and explicit owner acceptance, `diagnostics.known_limitations` can contain `kde_powerdevil_suppressed_owner_cleanup` for the selected KDE adapter. It describes the PowerDevil 6.7.5 user-suppression → monitor death → later allowance orphan scenario. It is a static conditional compatibility caveat, not detection of an orphan or a guarantee that every KDE version has the defect. Consumers must allow unknown additive limitation identifiers. See [source evidence](research/kde-suppression-cleanup.md).
+The [JSON Schema](../schemas/status-v1.json) describes the v1 output. Validate the envelope and inspect work, observation, controls and native facts independently; do not reduce every unavailable/unknown/paused/failed state to the same `false` result.
