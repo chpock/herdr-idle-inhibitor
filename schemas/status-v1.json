@@ -1,0 +1,571 @@
+{
+  "$defs": {
+    "Control": {
+      "properties": {
+        "pause_persisted": {
+          "type": "boolean"
+        },
+        "paused": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "pause_persisted",
+        "paused"
+      ],
+      "type": "object"
+    },
+    "Counters": {
+      "properties": {
+        "backend_losses": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "discovery_attempts": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "discovery_failures": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "hints_coalesced": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "hints_received": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "native_acquires": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "native_failures": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "native_releases": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "old_results_ignored": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "snapshot_failed": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "snapshot_hook": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "snapshot_initial": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "snapshot_poll": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "snapshot_resume": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "snapshot_valid": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "status_reads": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "backend_losses",
+        "discovery_attempts",
+        "discovery_failures",
+        "hints_coalesced",
+        "hints_received",
+        "native_acquires",
+        "native_failures",
+        "native_releases",
+        "old_results_ignored",
+        "snapshot_failed",
+        "snapshot_hook",
+        "snapshot_initial",
+        "snapshot_poll",
+        "snapshot_resume",
+        "snapshot_valid",
+        "status_reads"
+      ],
+      "type": "object"
+    },
+    "Diagnostics": {
+      "properties": {
+        "counters": {
+          "$ref": "#/$defs/Counters"
+        },
+        "issues": {
+          "items": {
+            "$ref": "#/$defs/Issue"
+          },
+          "type": "array"
+        },
+        "known_limitations": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "counters",
+        "issues",
+        "known_limitations"
+      ],
+      "type": "object"
+    },
+    "Inhibition": {
+      "properties": {
+        "backend": {
+          "enum": [
+            "hypridle-logind",
+            "gnome-session",
+            "kde-powerdevil",
+            "macos-iokit",
+            "windows-power-request",
+            null
+          ],
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "desired": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "last_error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Issue"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "enum": [
+            "working",
+            "release_grace",
+            "observation_grace",
+            "no_work",
+            "paused",
+            "ineligible",
+            "shutdown",
+            "unknown",
+            "unavailable"
+          ],
+          "type": "string"
+        },
+        "release_in_ms": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "request_state": {
+          "enum": [
+            "none",
+            "pending",
+            "accepted",
+            "releasing",
+            "suppressed",
+            "failed",
+            "unknown"
+          ],
+          "type": "string"
+        },
+        "resource_owned": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "retention_remaining_ms": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "backend",
+        "desired",
+        "last_error",
+        "reason",
+        "release_in_ms",
+        "request_state",
+        "resource_owned",
+        "retention_remaining_ms"
+      ],
+      "type": "object"
+    },
+    "Issue": {
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "type": "object"
+    },
+    "Monitor": {
+      "properties": {
+        "app_version": {
+          "type": "string"
+        },
+        "evaluated_at_unix_ms": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "instance_id": {
+          "type": "string"
+        },
+        "pid": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "snapshot_seq": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "uptime_ms": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "app_version",
+        "evaluated_at_unix_ms",
+        "instance_id",
+        "pid",
+        "snapshot_seq",
+        "uptime_ms"
+      ],
+      "type": "object"
+    },
+    "Observation": {
+      "properties": {
+        "complete": {
+          "type": "boolean"
+        },
+        "oldest_snapshot_age_ms": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "scope": {
+          "const": "registered_local_herdr_roots_and_endpoints",
+          "type": "string"
+        },
+        "servers_current": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "servers_tracked": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "servers_unknown": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "unknown_agents_observed": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "work": {
+          "$ref": "#/$defs/Work"
+        },
+        "working_agents_observed": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "complete",
+        "oldest_snapshot_age_ms",
+        "scope",
+        "servers_current",
+        "servers_tracked",
+        "servers_unknown",
+        "unknown_agents_observed",
+        "work",
+        "working_agents_observed"
+      ],
+      "type": "object"
+    },
+    "Work": {
+      "enum": [
+        "working",
+        "none",
+        "unknown"
+      ],
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "allOf": [
+    {
+      "else": {
+        "properties": {
+          "control": {
+            "type": "null"
+          },
+          "diagnostics": {
+            "type": "null"
+          },
+          "error": {
+            "type": "object"
+          },
+          "inhibition": {
+            "properties": {
+              "backend": {
+                "type": "null"
+              },
+              "desired": {
+                "type": "null"
+              },
+              "last_error": {
+                "type": "null"
+              },
+              "reason": {
+                "const": "unavailable"
+              },
+              "release_in_ms": {
+                "type": "null"
+              },
+              "request_state": {
+                "const": "unknown"
+              },
+              "resource_owned": {
+                "type": "null"
+              },
+              "retention_remaining_ms": {
+                "type": "null"
+              }
+            }
+          },
+          "monitor": {
+            "type": "null"
+          },
+          "observation": {
+            "properties": {
+              "complete": {
+                "const": false
+              },
+              "oldest_snapshot_age_ms": {
+                "type": "null"
+              },
+              "servers_current": {
+                "type": "null"
+              },
+              "servers_tracked": {
+                "type": "null"
+              },
+              "servers_unknown": {
+                "type": "null"
+              },
+              "unknown_agents_observed": {
+                "type": "null"
+              },
+              "work": {
+                "const": "unknown"
+              },
+              "working_agents_observed": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      },
+      "if": {
+        "properties": {
+          "available": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "control": {
+            "type": "object"
+          },
+          "diagnostics": {
+            "type": "object"
+          },
+          "error": {
+            "type": "null"
+          },
+          "inhibition": {
+            "properties": {
+              "desired": {
+                "type": "boolean"
+              }
+            }
+          },
+          "monitor": {
+            "type": "object"
+          },
+          "observation": {
+            "properties": {
+              "servers_current": {
+                "type": "integer"
+              },
+              "servers_tracked": {
+                "type": "integer"
+              },
+              "servers_unknown": {
+                "type": "integer"
+              },
+              "unknown_agents_observed": {
+                "type": "integer"
+              },
+              "working_agents_observed": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "available": {
+      "type": "boolean"
+    },
+    "control": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Control"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "diagnostics": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Diagnostics"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "error": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Issue"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "inhibition": {
+      "$ref": "#/$defs/Inhibition"
+    },
+    "monitor": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Monitor"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "observation": {
+      "$ref": "#/$defs/Observation"
+    },
+    "schema_version": {
+      "const": 1,
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "available",
+    "control",
+    "diagnostics",
+    "error",
+    "inhibition",
+    "monitor",
+    "observation",
+    "schema_version"
+  ],
+  "title": "Status",
+  "type": "object"
+}

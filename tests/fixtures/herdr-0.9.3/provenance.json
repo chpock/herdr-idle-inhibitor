@@ -1,0 +1,10 @@
+{
+  "captured_at_utc": "2026-10-09T01:17:23.328044+00:00",
+  "herdr_version": "0.9.3",
+  "capture": "live local socket; normalized request and terminal IDs; only minimal identity/status fields retained",
+  "sensitive_fields_retained": false,
+  "files": [
+    "ping.json",
+    "agent-list.json"
+  ]
+}

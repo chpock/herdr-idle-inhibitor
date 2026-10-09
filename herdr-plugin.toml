@@ -1,0 +1,50 @@
+id = "herdr-idle-inhibitor"
+name = "Idle Inhibitor"
+version = "0.1.0"
+min_herdr_version = "0.9.3"
+description = "Prevent idle sleep while local Herdr agents are working, without keeping the display on."
+platforms = ["linux", "macos", "windows"]
+
+[[build]]
+command = ["cargo", "build", "--release", "--locked", "--target-dir", "target"]
+
+[[startup]]
+command = ["./target/release/herdr-idle-inhibitor", "_ensure"]
+
+[[events]]
+on = "pane.agent_status_changed"
+command = ["./target/release/herdr-idle-inhibitor", "_ensure"]
+
+[[events]]
+on = "pane.agent_detected"
+command = ["./target/release/herdr-idle-inhibitor", "_ensure"]
+
+[[events]]
+on = "pane.closed"
+command = ["./target/release/herdr-idle-inhibitor", "_ensure"]
+
+[[events]]
+on = "pane.exited"
+command = ["./target/release/herdr-idle-inhibitor", "_ensure"]
+
+[[events]]
+on = "workspace.created"
+command = ["./target/release/herdr-idle-inhibitor", "_ensure"]
+
+[[events]]
+on = "workspace.closed"
+command = ["./target/release/herdr-idle-inhibitor", "_ensure"]
+
+[[actions]]
+id = "show"
+title = "Idle Inhibitor: status and settings"
+contexts = ["global", "workspace", "pane"]
+command = ["./target/release/herdr-idle-inhibitor", "_open"]
+
+[[panes]]
+id = "status"
+title = "Idle Inhibitor"
+placement = "popup"
+width = "80%"
+height = 22
+command = ["./target/release/herdr-idle-inhibitor", "_ui"]

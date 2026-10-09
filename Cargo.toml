@@ -1,0 +1,46 @@
+[package]
+name = "herdr-idle-inhibitor"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+description = "Idle-only sleep inhibition for working Herdr agents"
+license = "GPL-3.0-only"
+repository = "https://github.com/chpock/herdr-idle-inhibitor"
+
+[dependencies]
+anyhow = "1"
+async-trait = "0.1"
+clap = { version = "4", features = ["derive"] }
+crossterm = "0.29"
+directories = "6"
+futures-util = "0.3"
+interprocess = { version = "2.4", features = ["tokio"] }
+ratatui = "0.30"
+schemars = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tempfile = "3"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util", "process", "time", "sync", "signal"] }
+toml = "0.9"
+uuid = { version = "1", features = ["v4"] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+zbus = { version = "5", default-features = false, features = ["tokio"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+core-foundation = "0.10"
+
+[target.'cfg(windows)'.dependencies]
+widestring = "1"
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_Power", "Win32_System_SystemInformation", "Win32_Security", "Win32_Security_Authorization", "Win32_System_Threading", "Win32_System_Memory", "Win32_Storage_FileSystem", "Win32_UI_Shell", "Win32_System_Com", "Win32_UI_WindowsAndMessaging"] }
+
+[dev-dependencies]
+proptest = "1"
+jsonschema = { version = "0.45", default-features = false }
+
+[profile.release]
+lto = "thin"
+strip = true

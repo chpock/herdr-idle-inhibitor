@@ -1,0 +1,1379 @@
+{
+  "surveyDate": "2026-10-08",
+  "scope": "Full official catalog metadata screening; source review of every discovered direct inhibitor and one adjacent sleep scheduler. Not a source audit of unrelated plugins or a claim to enumerate all private/unlisted plugins.",
+  "catalogPage": "https://herdr.dev/plugins/",
+  "catalogGeneratedAt": "2026-10-08T21:30:29.799Z",
+  "catalogSha256": "c2f68222656187c9ba47f31a301ceeb1c1d47a8f3024bd5f5aac696c91d08f02",
+  "catalogPluginCount": 1626,
+  "catalogRepositoryCount": 1572,
+  "catalogCollector": {
+    "provider": "github",
+    "query": "topic:herdr-plugin is:public",
+    "totalCount": 1625,
+    "collectedCount": 1625,
+    "blacklistedCount": 2,
+    "missingManifestCount": 36,
+    "invalidManifestCount": 3,
+    "duplicateManifestCount": 7,
+    "skippedRepositoryCount": 0,
+    "unavailableRepositoryCount": 1,
+    "truncated": false
+  },
+  "screenedCandidateRepositoryCount": 60,
+  "sourceReviewedDirectInhibitorCount": 9,
+  "sourceReviewedAdjacentSchedulerCount": 1,
+  "herdrReference": {
+    "version": "0.9.3",
+    "commit": "7b116c05bfda646af39d2524c54e70c751f57ee8",
+    "url": "https://github.com/herdrdev/herdr"
+  },
+  "hypridleReference": {
+    "version": "0.1.8",
+    "commit": "e5c01af0842bd66617f7004568df9406111d6e80",
+    "url": "https://github.com/hyprwm/hypridle"
+  },
+  "bundledWakeupReference": {
+    "version": "0.1.3",
+    "commit": "806c26d803435c770670802b78b820cf1d8f24f7",
+    "url": "https://github.com/usrivastava92/wakeup"
+  },
+  "sourceReviewedRepositories": [
+    {
+      "repository": "happyeric77/agent-keep-awake",
+      "commit": "eef5abfda527cd12ff64cfcd869305bbf375e031",
+      "sourceUrl": "https://github.com/happyeric77/agent-keep-awake/tree/eef5abfda527cd12ff64cfcd869305bbf375e031",
+      "inCatalogSnapshot": true
+    },
+    {
+      "repository": "gw31415/herdr-amphetamine-macos",
+      "commit": "e5ef0d75fbd47c8b9b4b600d4dbf720f2d1ac7ff",
+      "sourceUrl": "https://github.com/gw31415/herdr-amphetamine-macos/tree/e5ef0d75fbd47c8b9b4b600d4dbf720f2d1ac7ff",
+      "inCatalogSnapshot": false
+    },
+    {
+      "repository": "susomejias/herdr-awake",
+      "commit": "71c90c3e7809732c1e44336632893a65306db0ef",
+      "sourceUrl": "https://github.com/susomejias/herdr-awake/tree/71c90c3e7809732c1e44336632893a65306db0ef",
+      "inCatalogSnapshot": true
+    },
+    {
+      "repository": "nwarwick/herdr-caffeinate",
+      "commit": "25bdfe36d3948123069c9dadbb02df4d1a895d07",
+      "sourceUrl": "https://github.com/nwarwick/herdr-caffeinate/tree/25bdfe36d3948123069c9dadbb02df4d1a895d07",
+      "inCatalogSnapshot": true
+    },
+    {
+      "repository": "jewei/herdr-caffeinated",
+      "commit": "a4fd32c3594f59b7905eb3678f8e3c2b37fa70b2",
+      "sourceUrl": "https://github.com/jewei/herdr-caffeinated/tree/a4fd32c3594f59b7905eb3678f8e3c2b37fa70b2",
+      "inCatalogSnapshot": true
+    },
+    {
+      "repository": "Hanyang-Li/herdr-espresso",
+      "commit": "ee0b29cd82022f961b20149119dc4868a41f22fa",
+      "sourceUrl": "https://github.com/Hanyang-Li/herdr-espresso/tree/ee0b29cd82022f961b20149119dc4868a41f22fa",
+      "inCatalogSnapshot": true
+    },
+    {
+      "repository": "moosingin3space/herdr-sleep-inhibit",
+      "commit": "82a0e59378ff3bce7d918dc55dbdd9643f5b8ad7",
+      "sourceUrl": "https://github.com/moosingin3space/herdr-sleep-inhibit/tree/82a0e59378ff3bce7d918dc55dbdd9643f5b8ad7",
+      "inCatalogSnapshot": true
+    },
+    {
+      "repository": "assawalhy/herdr-stay-awake",
+      "commit": "b6a33e6ed09f188ba0d85377a9083d3d3a6adeaa",
+      "sourceUrl": "https://github.com/assawalhy/herdr-stay-awake/tree/b6a33e6ed09f188ba0d85377a9083d3d3a6adeaa",
+      "inCatalogSnapshot": true
+    },
+    {
+      "repository": "usrivastava92/herdr-wakeup",
+      "commit": "43db0b9f88a4b1bc560593b0ce8f2a7d2a940f04",
+      "sourceUrl": "https://github.com/usrivastava92/herdr-wakeup/tree/43db0b9f88a4b1bc560593b0ce8f2a7d2a940f04",
+      "inCatalogSnapshot": true
+    },
+    {
+      "repository": "scheron/herdr-want-to-sleep",
+      "commit": "120c210e838ec7333c14556c61e4f38eb462e3c3",
+      "sourceUrl": "https://github.com/scheron/herdr-want-to-sleep/tree/120c210e838ec7333c14556c61e4f38eb462e3c3",
+      "inCatalogSnapshot": true
+    }
+  ],
+  "catalogCandidates": [
+    {
+      "repository": "0xMMA/herdr-claude-autoupdate",
+      "url": "https://github.com/0xMMA/herdr-claude-autoupdate",
+      "indexedCommit": "1b29f04924b3ad538590db9cfe1903026ee04d5c",
+      "description": "herdr plugin: restarts idle Claude Code panes onto the newly installed version, in place, same session and flags, drafts kept.",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "claude-autoupdate",
+          "name": "Claude Code auto-update",
+          "version": "0.2.0",
+          "minHerdrVersion": "0.9.3",
+          "description": "Restarts idle Claude Code panes onto the newly installed Claude Code version, in place, with the same session and flags.",
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "A1exthegreat/herdr-agent-notify",
+      "url": "https://github.com/A1exthegreat/herdr-agent-notify",
+      "indexedCommit": "5ba0cab55b99b727cbf973952e3c4c84f12728a5",
+      "description": "Herdr plugin: desktop notifications when agents finish working, need confirmation, or go idle",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "herdr-agent-notify",
+          "name": "herdr-agent-notify",
+          "version": "1.1.0",
+          "minHerdrVersion": "0.8.0",
+          "description": "Desktop notifications when agents finish working, need confirmation, or go idle",
+          "platforms": [
+            "windows"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "agentwireprotocol/awp",
+      "url": "https://github.com/agentwireprotocol/awp",
+      "indexedCommit": "cc6d6ac3dc165ceb15a9cfe3173afa726e6b55c8",
+      "description": "Peer-to-peer messaging for AI coding agents: delegate tasks, share files, track state across Claude Code, Codex, Cursor, OpenCode, Pi and more.",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "plugin/herdr/herdr-plugin.toml",
+          "id": "agentwireprotocol.awp",
+          "name": "AWP",
+          "version": "0.6.0",
+          "minHerdrVersion": "0.9.1",
+          "description": "The Agent Wire Protocol in herdr: notifications for inbound messages, a live inbox, and delivery to an idle agent.",
+          "platforms": [
+            "linux",
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "akshat12/herdr-muse",
+      "url": "https://github.com/akshat12/herdr-muse",
+      "indexedCommit": "9b3365ac25a0ff5535e81da0882edcb58a50e698",
+      "description": "Herdr integration for Muse Code: idle/working/blocked pane state via lifecycle hooks (no Herdr fork needed)",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "herdr-muse",
+          "name": "Herdr Muse integration",
+          "version": "0.1.0",
+          "minHerdrVersion": "0.8.0",
+          "description": "Report Muse Code session state (idle/working/blocked) to Herdr panes",
+          "platforms": [
+            "linux",
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "anrunt/herdr-pi-reloader",
+      "url": "https://github.com/anrunt/herdr-pi-reloader",
+      "indexedCommit": "ae3de20e76e2500428a94223a52e8760fa026ffa",
+      "description": "Reload or restart idle Pi agent sessions from a Herdr overlay TUI.",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "herdr-pi-reloader.pi-reloader",
+          "name": "Herdr Pi Reloader",
+          "version": "0.1.2",
+          "minHerdrVersion": "0.7.4",
+          "description": "Reload or restart idle Pi agent sessions from a Herdr popup",
+          "platforms": [
+            "linux",
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "aoprisan/hird",
+      "url": "https://github.com/aoprisan/hird",
+      "indexedCommit": "e232026cef2c2a41cb14c4b4d44e4a2cf0d2a508",
+      "description": "Cross-harness agent work queue and shared assertion memory, backed by one local SQLite database",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin/herdr-plugin.toml",
+          "id": "hird",
+          "name": "hird",
+          "version": "0.2.0",
+          "minHerdrVersion": "0.7.5",
+          "description": "The hird queue under herdr: watch the board, follow the feed, wire the dispatch hook, summon idle agents to claimable work.",
+          "platforms": [
+            "linux",
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "arvmaan/herdr-glance",
+      "url": "https://github.com/arvmaan/herdr-glance",
+      "indexedCommit": "30edc91f90fd95fb370c0b316112220117c0c825",
+      "description": "desktop widget to view the status of your agents",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "herdr.glance",
+          "name": "Glance",
+          "version": "0.1.4",
+          "minHerdrVersion": "0.8.0",
+          "description": "Always-on-top visibility into active Herdr agents",
+          "platforms": [
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "asermax/herdr-suspend-workspace",
+      "url": "https://github.com/asermax/herdr-suspend-workspace",
+      "indexedCommit": "c98ab3f70388e82c919f9585ed96886dcb9f8fda",
+      "description": "Suspend a herdr workspace (snapshot layout + agents, close it, restore later from a popup picker)",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "asermax.workspace-suspend",
+          "name": "Suspend Workspace",
+          "version": "0.2.4",
+          "minHerdrVersion": "0.7.5",
+          "description": "Suspend a workspace (snapshot layout + agents, close it, restore later from a popup picker).",
+          "platforms": [
+            "linux",
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "assawalhy/herdr-stay-awake",
+      "url": "https://github.com/assawalhy/herdr-stay-awake",
+      "indexedCommit": "b6a33e6ed09f188ba0d85377a9083d3d3a6adeaa",
+      "description": "Keeps the machine from sleeping while any herdr agent pane is working (Linux, macOS, Windows, and WSL)",
+      "classification": "direct-inhibitor-source-reviewed",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "assawalhy.stay-awake",
+          "name": "Stay Awake",
+          "version": "0.2.0",
+          "minHerdrVersion": "0.7.0",
+          "description": "Keeps the machine from sleeping while any herdr agent pane is working (Linux, macOS, Windows, and WSL)",
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "barnuri/herdr-notifications",
+      "url": "https://github.com/barnuri/herdr-notifications",
+      "indexedCommit": "ab72725d65bc5c212c5e105233a13dad747c0a07",
+      "description": "herdr plugin: Telegram notifications when an agent goes idle, gets blocked, or finishes",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "barnuri.notifications",
+          "name": "Herdr Notifications",
+          "version": "0.2.0",
+          "minHerdrVersion": "0.7.0",
+          "description": "Send a Telegram, Discord and/or Slack message when a herdr agent goes idle, gets blocked, or finishes",
+          "platforms": [
+            "linux",
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "benbrackenbury/herder-zsh-refresh",
+      "url": "https://github.com/benbrackenbury/herder-zsh-refresh",
+      "indexedCommit": "894d2d902415ba16c3c0254d3d889490c1079eeb",
+      "description": "Herdr plugin: exec zsh in every idle zsh pane",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "benbrackenbury.zsh-refresh",
+          "name": "Zsh refresh",
+          "version": "1.0.0",
+          "minHerdrVersion": "0.7.4",
+          "description": "exec zsh in every idle zsh pane",
+          "platforms": [
+            "linux",
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "bengemine/herdr-hibernate",
+      "url": "https://github.com/bengemine/herdr-hibernate",
+      "indexedCommit": "9b3f85e2409d5d3b7117a441ac5fbfa570c5334f",
+      "description": "Hibernate idle coding-agent panes in Herdr (Claude Code, Codex, Grok) — free the RAM, press Enter to resume the exact session.",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "bengemine.hibernate",
+          "name": "Herdr Hibernate",
+          "version": "1.2.0",
+          "minHerdrVersion": "0.7.0",
+          "description": "Hibernate idle Claude Code, Codex, and Grok panes to ~0 RAM — kill the process tree, leave a tiny resume stub, press Enter to get the exact session back.",
+          "platforms": [
+            "linux"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "calorie/herdr-auto-focus",
+      "url": "https://github.com/calorie/herdr-auto-focus",
+      "indexedCommit": "8739aa73a3b4ec74dbadb9d59f61d0803f66d722",
+      "description": "Focus Herdr agents that need attention after macOS input becomes idle.",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "calorie.herdr-auto-focus",
+          "name": "Herdr Auto Focus",
+          "version": "0.1.2",
+          "minHerdrVersion": "0.7.0",
+          "description": "Focus agents that need attention after system input becomes idle.",
+          "platforms": [
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "cdc-lst/herdr-wait",
+      "url": "https://github.com/cdc-lst/herdr-wait",
+      "indexedCommit": "76f81e4d7b61751650dfcab2be7736955b984dfa",
+      "description": "Configurable herdr plugin that tags an idle agent pane with what it's really doing — e.g. 'waiting: build-api' or 'waiting: codex' — matched from the pane's process tree.",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "herdr-wait",
+          "name": "herdr-wait",
+          "version": "0.1.0",
+          "minHerdrVersion": "0.7.0",
+          "description": "Enriches agent-pane sidebar status from the pane's actual foreground command (waiting / sub-CLI reviewer), leaving dev servers untouched.",
+          "platforms": [
+            "macos",
+            "linux"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "cdpath/herdr-warp",
+      "url": "https://github.com/cdpath/herdr-warp",
+      "indexedCommit": "b1451110be1e8de9a39826f45b328b117002152f",
+      "description": "Herdr plugin that drives the interactive Warp Agent CLI (warp) in Herdr panes: open/send/status/wait/read/approve/deny/new/stop/exit, with screen-scraped idle/working/blocked state",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "herdr.warp",
+          "name": "Warp",
+          "version": "0.3.0",
+          "minHerdrVersion": "0.7.0",
+          "description": "Drive the interactive Warp Agent CLI (`warp`) in a Herdr pane. Open a persistent warp session in a sibling pane, send prompts (selected text), track idle/working/blocked state, answer approval cards, and read the transcript.",
+          "platforms": [
+            "linux",
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "chantlong/herdr-habitat",
+      "url": "https://github.com/chantlong/herdr-habitat",
+      "indexedCommit": "2094a9d16ae3ab4dd60ab9e0ad6b0559e2a3df26",
+      "description": "herdr habitat is a living terminal habitat that grows alongside your agents’ work. Nurturing takes time, so no agentmaxxing please. As agents burn tokens in energy-hungry data centers that damage ecosystems, herdr habitat grows virtual plants and attracts virtual wildlife as ironic as that sounds.",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "herdr-habitat",
+          "name": "herdr habitat",
+          "version": "0.1.0",
+          "minHerdrVersion": "0.8.0",
+          "description": "A living terminal habitat that brings Herdr agent status changes to life",
+          "platforms": [
+            "macos",
+            "linux"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "cheoljoo/herdr-space-activity-monitor",
+      "url": "https://github.com/cheoljoo/herdr-space-activity-monitor",
+      "indexedCommit": "4115cb0a94336120fe70f7bdc30b9b324d0dab4a",
+      "description": "Herdr plugin: marks Space sidebar rows as printing / unseen-output / idle via a custom $activity token",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "cheoljoo.space-activity-monitor",
+          "name": "Space Activity Monitor",
+          "version": "0.2.0",
+          "minHerdrVersion": "0.8.0",
+          "description": "Marks Space rows as printing now or having unseen output, using a custom $activity sidebar token",
+          "platforms": [
+            "linux",
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "common-resources/herdr-autopark",
+      "url": "https://github.com/common-resources/herdr-autopark",
+      "indexedCommit": "680ca939b543b04876863143d23d7f67e59905ec",
+      "description": "herdr plugin that parks idle coding agents to free their RAM. See where you left off and resume in one tap.",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "autopark",
+          "name": "Autopark",
+          "version": "0.2.0",
+          "minHerdrVersion": "0.7.5",
+          "description": "Park coding agents (Claude Code, Hermes) idle for an hour to free their RAM; the pane keeps a still view of the conversation and Enter resumes it",
+          "platforms": [
+            "linux"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "dalogax/herdr-agent-hibernate",
+      "url": "https://github.com/dalogax/herdr-agent-hibernate",
+      "indexedCommit": "a9eaa028ffaa03d28540026aadfabef117d0bf0f",
+      "description": "Hibernate idle AI agent panes in Herdr: frees their memory, resumes the same session when you come back. Supports OpenCode, Claude Code and Codex.",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "dalogax.agent-hibernate",
+          "name": "Agent Hibernate",
+          "version": "0.4.1",
+          "minHerdrVersion": "0.9.1",
+          "description": "Auto-sleep idle agent panes (OpenCode, Claude Code, Codex) and resume the same session on focus.",
+          "platforms": [
+            "macos",
+            "linux"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "daocoding/herdr-claude-lifecycle",
+      "url": "https://github.com/daocoding/herdr-claude-lifecycle",
+      "indexedCommit": "0ac853529b8a91813b8578e8dd90f00117367a50",
+      "description": "Hook-first Claude Code lifecycle for herdr + Omarchy: working/blocked/idle from Claude's own hooks, verify after every Claude Code update",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "daocoding.claude-lifecycle",
+          "name": "Claude Lifecycle",
+          "version": "0.1.0",
+          "minHerdrVersion": "0.8.0",
+          "description": "Hook-first Claude Code lifecycle for herdr: working/blocked/idle from Claude's own hooks, with Stop.background_tasks as the idle discriminator. Includes `verify` for every Claude Code update.",
+          "platforms": [
+            "linux",
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "DnzzL/herdr-automations",
+      "url": "https://github.com/DnzzL/herdr-automations",
+      "indexedCommit": "2bae3f9ad2c016bd694dcb39a95fb02578378c17",
+      "description": "Scheduled tasks for your coding agents, in the terminal. A prompt, a cron line, and a fresh git worktree per run — on Herdr. One YAML file, no store, prebuilt binaries, per-automation model, catch-up after sleep, and a live board.",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "dnzzl.automations",
+          "name": "Automations",
+          "version": "0.8.2",
+          "minHerdrVersion": "0.8.0",
+          "description": "Cron-scheduled agent prompts for Herdr — the trigger layer: prompt + cron, agent launched in a fresh worktree or the repo root.",
+          "platforms": [
+            "linux",
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "EricBois/herdr-nudge",
+      "url": "https://github.com/EricBois/herdr-nudge",
+      "indexedCommit": "c3b8db5d61bc965b499087c55ef1cf6cc074515a",
+      "description": "Arm a continue-nudge on a herdr agent — fire at a set time, or when it goes idle/blocked",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "herdr-nudge",
+          "name": "Nudge",
+          "version": "0.1.0",
+          "minHerdrVersion": "0.7.0",
+          "description": "Arm a continue-nudge on an agent (at a time, or when it goes idle/blocked)",
+          "platforms": [
+            "macos",
+            "linux"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "frega/herdr-suspenders",
+      "url": "https://github.com/frega/herdr-suspenders",
+      "indexedCommit": "2b420191a8d43a691f1047b7cc3c508bfde1aec5",
+      "description": "Suspend all the things (claude code sessions)",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "frega.suspenders",
+          "name": "Suspenders",
+          "version": "0.2.0",
+          "minHerdrVersion": "0.8.0",
+          "description": "Suspend a single tab (layout + agent sessions), close it, and revive it later into the same herdr session and workspace.",
+          "platforms": [
+            "linux",
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "getpipher/herdr-sysmon",
+      "url": "https://github.com/getpipher/herdr-sysmon",
+      "indexedCommit": "2d0c6c4cf1a97a5ce858129e63e8c75fc68df3da",
+      "description": "System metrics in the Herdr sidebar — CPU, memory, battery, network, disk, clock. A faithful port of a tmux-cpu/tmux-battery/tmux-online-status status bar into Herdr workspace tokens. macOS-first.",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "getpipher.herdr-sysmon",
+          "name": "Herdr Sysmon",
+          "version": "0.1.1",
+          "minHerdrVersion": "0.7.0",
+          "description": "System metrics in the Herdr sidebar — CPU, memory, battery, network, disk, clock. A faithful port of a tmux-cpu/tmux-battery/tmux-online-status status bar into Herdr workspace tokens. macOS-first.",
+          "platforms": [
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "hamidi-dev/herdr-opentab",
+      "url": "https://github.com/hamidi-dev/herdr-opentab",
+      "indexedCommit": "e7b91c51f92df5d3c1b972abbfc3d93698d34f67",
+      "description": "Live per-agent AI spend from OpenTab in the Herdr sidebar.",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "opentab",
+          "name": "OpenTab",
+          "version": "0.1.0",
+          "minHerdrVersion": "0.7.0",
+          "description": "Live per-agent spend and working/idle timers in the Herdr sidebar.",
+          "platforms": [
+            "linux",
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "Hanyang-Li/herdr-espresso",
+      "url": "https://github.com/Hanyang-Li/herdr-espresso",
+      "indexedCommit": "ee0b29cd82022f961b20149119dc4868a41f22fa",
+      "description": "Keeps your MacBook awake even when the lid closed when agent is running",
+      "classification": "direct-inhibitor-source-reviewed",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "espresso",
+          "name": "Espresso Guard",
+          "version": "1.0.0",
+          "minHerdrVersion": "0.8.2",
+          "description": "Keep macOS awake (incl. lid-closed) while any herdr agent is working.",
+          "platforms": [
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "happyeric77/agent-keep-awake",
+      "url": "https://github.com/happyeric77/agent-keep-awake",
+      "indexedCommit": "eef5abfda527cd12ff64cfcd869305bbf375e031",
+      "description": "Prevent macOS sleep while Herdr agents are working",
+      "classification": "direct-inhibitor-source-reviewed",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "herdr.keep-awake",
+          "name": "Keep Awake",
+          "version": "0.1.0",
+          "minHerdrVersion": "0.7.0",
+          "description": "Prevent macOS from sleeping while a Herdr agent is working.",
+          "platforms": [
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "haretoke/herdr-agent-parking",
+      "url": "https://github.com/haretoke/herdr-agent-parking",
+      "indexedCommit": "15cf7c8bf36531b29c7ae8aca9269d6f9fadea7a",
+      "description": "Herdr plugin: park idle Claude Code sessions to free their memory and resume them in place, with notes and compaction",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "haretoke.agent-parking",
+          "name": "Agent parking",
+          "version": "0.1.13",
+          "minHerdrVersion": "0.9.1",
+          "description": "Park idle Claude Code sessions to free their memory and resume them in place, with notes and compaction",
+          "platforms": [
+            "linux",
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "hhdebb/herdr-radar",
+      "url": "https://github.com/hhdebb/herdr-radar",
+      "indexedCommit": "1ba8cc4a3900191c9f1f4f850398c7dd10212df2",
+      "description": "Who's working, who's waiting on you — grouped by project, each agent in its vendor's logo and colour. Worktrees nest under their repo, rows order by activity, idle sessions fade. Light and dark.",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "hhdebb.herdr-radar",
+          "name": "Herdr Radar",
+          "version": "1.4.2",
+          "minHerdrVersion": "0.9.0",
+          "description": "Who's working, who's waiting on you — grouped by project, each agent in its vendor's logo and colour. Worktrees nest under their repo, rows order by activity, idle sessions fade. Light and dark.",
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "hmu332233/herdr-agent-restart",
+      "url": "https://github.com/hmu332233/herdr-agent-restart",
+      "indexedCommit": "b4445834e14eba2dd674ae565561bea98717eefb",
+      "description": " Restart agents in Herdr with one shortcut when their display breaks, and continue the same conversation.",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "dev.minung.agent-restart",
+          "name": "Agent Restart",
+          "version": "1.0.0",
+          "minHerdrVersion": "0.7.4",
+          "description": "Restart an idle Codex, Claude, Grok, or Agy agent and resume its session.",
+          "platforms": [
+            "linux",
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "horn553/herdr-ntfy",
+      "url": "https://github.com/horn553/herdr-ntfy",
+      "indexedCommit": "353914683301462f1657364c7b24ab33b2876525",
+      "description": "Minimal dependencies: jq, curl, and sh — send ntfy notifications when Herdr agents finish or get blocked.",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "horn553.herdr-ntfy",
+          "name": "Herdr ntfy",
+          "version": "0.2.0",
+          "minHerdrVersion": "0.7.0",
+          "description": "Send ntfy notifications when Herdr agents finish, become idle after working, or get blocked, with an optional Collie click-through link.",
+          "platforms": [
+            "linux",
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "inoribea/herdr-goose-bridge",
+      "url": "https://github.com/inoribea/herdr-goose-bridge",
+      "indexedCommit": "c0b56ba2999768c35443a4f72fad881c3dea9050",
+      "description": "Herdr plugin that reports goose agent lifecycle state (idle / working / blocked) into your panes. goose is a line-mode CLI, so Herdr cannot detect it on its own.",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "goose.bridge",
+          "name": "goose state bridge",
+          "version": "0.2.2",
+          "minHerdrVersion": "0.9.0",
+          "description": "Report goose agent lifecycle state (idle/working/blocked) into Herdr panes",
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "jewei/herdr-caffeinated",
+      "url": "https://github.com/jewei/herdr-caffeinated",
+      "indexedCommit": "a4fd32c3594f59b7905eb3678f8e3c2b37fa70b2",
+      "description": "Herdr plugin: keep macOS awake with caffeinate while Herdr agents work",
+      "classification": "direct-inhibitor-source-reviewed",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "herdr-caffeinated",
+          "name": "Herdr Caffeinated",
+          "version": "0.4.0",
+          "minHerdrVersion": "0.7.5",
+          "description": "Keep macOS awake with caffeinate while Herdr agents work.",
+          "platforms": [
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "johntrandall/herdr-claude-account-watch",
+      "url": "https://github.com/johntrandall/herdr-claude-account-watch",
+      "indexedCommit": "943c377d4dd3811179ccc151f19c3645d3b71620",
+      "description": "herdr plugin: flag Claude Code panes that are logged out or have hit a usage limit (herdr shows them as plain idle)",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "johntrandall.claude-account-watch",
+          "name": "Claude Account Watch",
+          "version": "0.2.0",
+          "minHerdrVersion": "0.9.0",
+          "description": "Flag Claude Code panes that are logged out or have hit a usage limit; herdr otherwise shows them as plain idle.",
+          "platforms": [
+            "linux",
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "kadaliao/herdr-plugins",
+      "url": "https://github.com/kadaliao/herdr-plugins",
+      "indexedCommit": "750db03b4b744cd23bb2c7daa7922e5bb7d65705",
+      "description": "Herdr sidebar plugins: space-index and agent-index number workspaces and agents so prefix+shift+1..9 and prefix+alt+1..9 have visible targets",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "agent-index/herdr-plugin.toml",
+          "id": "kadaliao.agent-index",
+          "name": "Agent index",
+          "version": "0.1.0",
+          "minHerdrVersion": "0.9.0",
+          "description": "Show each Herdr agent's panel number in the sidebar, so focus_agent = prefix+alt+1..9 has visible targets.",
+          "platforms": [
+            "linux",
+            "macos"
+          ]
+        },
+        {
+          "path": "space-index/herdr-plugin.toml",
+          "id": "kadaliao.space-index",
+          "name": "Space index",
+          "version": "0.1.0",
+          "minHerdrVersion": "0.9.0",
+          "description": "Show each Herdr workspace's switch number in the sidebar, so prefix+shift+1..9 has visible targets.",
+          "platforms": [
+            "linux",
+            "macos"
+          ]
+        },
+        {
+          "path": "status-bar/herdr-plugin.toml",
+          "id": "kadaliao.status-bar",
+          "name": "Status bar",
+          "version": "0.1.0",
+          "minHerdrVersion": "0.9.0",
+          "description": "System info for Herdr's tab-bar status area: network speed, battery, CPU, and memory, with configurable templates.",
+          "platforms": [
+            "linux",
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "krzysztoff1/herdr-cull",
+      "url": "https://github.com/krzysztoff1/herdr-cull",
+      "indexedCommit": "e7f0703c35aefd2fbac350eec9c5dd9a8bb51aad",
+      "description": "Review and close idle agent panes in herdr — fzf multi-select, nothing closes without confirmation.",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "herdr-cull",
+          "name": "Cull (idle agent panes)",
+          "version": "0.4.0",
+          "minHerdrVersion": "0.7.0",
+          "description": "Review and close herdr agent panes in one fzf overlay — stale sessions (idle past a threshold, default 4h) flagged on top, active-recently ones still selectable below. Nothing closes without your confirmation.",
+          "platforms": [
+            "linux",
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "kuwa72/herdr-focus-attention",
+      "url": "https://github.com/kuwa72/herdr-focus-attention",
+      "indexedCommit": "4465175dd4b17ae6193fcc68015c2bc25f69ebe6",
+      "description": "Herdr plugin: cycle through agents needing attention",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "kuwa72.focus-attention",
+          "name": "Focus Attention",
+          "version": "0.1.2",
+          "minHerdrVersion": "0.7.0",
+          "description": "Jump to the next/previous agent needing attention (blocked > done > idle, most recent first)",
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "leonardoacosta/herdr-jcode",
+      "url": "https://github.com/leonardoacosta/herdr-jcode",
+      "indexedCommit": "c62857a3efea4e63fa72b03cbe849739a5fb9321",
+      "description": "Standalone Herdr plugin that reports Jcode working/idle lifecycle state plus session identity. Independent implementation; no fork dependency.",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "leonardoacosta.herdr-jcode",
+          "name": "Jcode session hooks",
+          "version": "0.2.0",
+          "minHerdrVersion": "0.8.2",
+          "description": "Reports Jcode working/idle lifecycle state plus session identity. Independent implementation; no fork dependency.",
+          "platforms": [
+            "linux"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "leonho/herdr-idle-panes",
+      "url": "https://github.com/leonho/herdr-idle-panes",
+      "indexedCommit": "2ab11e3b4814cdb3fe7ca3b489cedbfe28e62479",
+      "description": "herdr plugin: popup checklist to review and close panes sitting at an idle shell",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "leonho.idle-panes",
+          "name": "Idle Panes",
+          "version": "0.3.0",
+          "minHerdrVersion": "0.7.4",
+          "description": "Popup pane switcher: jump to active/running panes hidden in workspaces and tabs, or close idle shell panes to free PTY fds. Tab key switches between the two modes.",
+          "platforms": [
+            "macos",
+            "linux"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "madebygrant/herdr-matrix",
+      "url": "https://github.com/madebygrant/herdr-matrix",
+      "indexedCommit": "d33c46cf573b6aead689157dfaa1486f42f88c4b",
+      "description": "Herdr Matrix. Your agents become Smith, Brown and Jones, with Matrix status text and digital rain when idle.",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "madebygrant.herdr-matrix",
+          "name": "Matrix",
+          "version": "0.4.1",
+          "minHerdrVersion": "0.8.2",
+          "description": "Matrix theming for Herdr: Agent names, space numbers, idle rain and exit messages",
+          "platforms": [
+            "macos",
+            "linux"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "maedana/herdr-agents-status",
+      "url": "https://github.com/maedana/herdr-agents-status",
+      "indexedCommit": "5a6961b82f4c7a35a1e5334784f02a54e4b1fd44",
+      "description": "Always-on-top agent status overlay",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "maedana.agents-status",
+          "name": "Agents Status",
+          "version": "0.1.0",
+          "minHerdrVersion": "0.7.0",
+          "description": "Always-on-top agent status overlay",
+          "platforms": [
+            "linux",
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "moosingin3space/herdr-sleep-inhibit",
+      "url": "https://github.com/moosingin3space/herdr-sleep-inhibit",
+      "indexedCommit": "82a0e59378ff3bce7d918dc55dbdd9643f5b8ad7",
+      "description": null,
+      "classification": "direct-inhibitor-source-reviewed",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "herdr.sleep-inhibit",
+          "name": "Sleep Inhibit",
+          "version": "0.1.0",
+          "minHerdrVersion": "0.8.2",
+          "description": "Prevent Linux desktop sleep while any Herdr agent is actively working.",
+          "platforms": [
+            "linux"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "morphysh/herdr-battery",
+      "url": "https://github.com/morphysh/herdr-battery",
+      "indexedCommit": "4faf7cf9620fec9950b602dd0f310e905ffbb616",
+      "description": "Laptop battery status for the herdr tab bar (⚡charging 🔋on-battery 🔌held), plus a health/power details popup. Linux sysfs, zero dependencies.",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "rock.battery",
+          "name": "Battery",
+          "version": "0.3.0",
+          "minHerdrVersion": "0.9.0",
+          "description": "Laptop battery, CPU, and memory status in the herdr tab bar, plus a full system report popup (Linux sysfs + /proc, zero dependencies)",
+          "platforms": [
+            "linux"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "netresearch/herdr-bg-activity",
+      "url": "https://github.com/netresearch/herdr-bg-activity",
+      "indexedCommit": "bbd806eed1d3d282addb54d92c9505006fd97444",
+      "description": "herdr plugin that marks idle agents still running monitors or background shells",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "netresearch.bg-activity",
+          "name": "Background Activity",
+          "version": "0.2.1",
+          "minHerdrVersion": "0.9.0",
+          "description": "Marks idle agents that still own running monitors or background shells",
+          "platforms": [
+            "linux",
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "nwarwick/herdr-caffeinate",
+      "url": "https://github.com/nwarwick/herdr-caffeinate",
+      "indexedCommit": "25bdfe36d3948123069c9dadbb02df4d1a895d07",
+      "description": "Prevent macOS system sleep while Herdr agents are working",
+      "classification": "direct-inhibitor-source-reviewed",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "herdr-caffeinate",
+          "name": "Herdr Caffeinate",
+          "version": "0.1.0",
+          "minHerdrVersion": "0.7.5",
+          "description": "Prevent macOS system sleep while Herdr agents are working",
+          "platforms": [
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "parker-brown-family/herdr-auto-warm-cache",
+      "url": "https://github.com/parker-brown-family/herdr-auto-warm-cache",
+      "indexedCommit": "2fa7fe75741f8ac124e7a19801f18ca0be1232c9",
+      "description": "A herdr plugin that keeps an idle agent's prompt cache warm before the one-hour TTL expires — 20x cheaper than letting it lapse. Asks before it types, and never types into a pane that is waiting on you.",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "brownfamilysports.cache-keepalive",
+          "name": "Cache Keepalive",
+          "version": "0.1.0",
+          "minHerdrVersion": "0.7.5",
+          "description": "Keep an idle agent's prompt cache warm before the hour expires",
+          "platforms": [
+            "linux"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "prabhatCH/herdr-park",
+      "url": "https://github.com/prabhatCH/herdr-park",
+      "indexedCommit": "f07d1339f6c3281658a0d7d90b3e2dc4f61e57c0",
+      "description": "herdr plugin: park or hibernate idle agent tabs to free memory, and resume the exact session later from a searchable picker",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "herdr-park",
+          "name": "Park",
+          "version": "0.1.0",
+          "minHerdrVersion": "0.9.0",
+          "description": "Free the memory of idle agent tabs: park (close + save) or hibernate (keep the tab) and resume the exact session later from a searchable picker",
+          "platforms": [
+            "linux",
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "rcosteira79/herdr-idle-shell-badge",
+      "url": "https://github.com/rcosteira79/herdr-idle-shell-badge",
+      "indexedCommit": "e3bee7f93a8244a04453da45d1012719315ce97f",
+      "description": "Badges idle agents that still have background shells running",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "rcosteira.idle-shell-badge",
+          "name": "Idle Shell Badge",
+          "version": "0.1.0",
+          "minHerdrVersion": "0.8.2",
+          "description": "Badges agents that have background shells running",
+          "platforms": [
+            "macos",
+            "linux"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "robbyrussell/herdr-ohmyzsh",
+      "url": "https://github.com/robbyrussell/herdr-ohmyzsh",
+      "indexedCommit": "bbc072ada531e6306276900a866a4b44a9b92e74",
+      "description": "Oh My Zsh plugin for Herdr: slow commands in the sidebar, done notifications, shell helpers, and one key to reload Oh My Zsh in every idle pane",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "ohmyzsh.shell",
+          "name": "Oh My Zsh",
+          "version": "0.1.0",
+          "minHerdrVersion": "0.8.0",
+          "description": "Know when the slow command finished, reload Oh My Zsh in every idle pane with one key, and short names for splits, tabs, agents and worktrees",
+          "platforms": [
+            "macos",
+            "linux"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "Sawakee/herdr-imebox",
+      "url": "https://github.com/Sawakee/herdr-imebox",
+      "indexedCommit": "3f3b2e3a79fd1645edbbb8ac443aea5f2bead24f",
+      "description": "IME-friendly pop-up text box for typing Japanese/CJK into AI agent panes in herdr",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "herdr-imebox",
+          "name": "herdr-imebox",
+          "version": "0.1.3",
+          "minHerdrVersion": "0.7.0",
+          "description": "IME-friendly pop-up text box for typing Japanese/CJK into AI agent panes.",
+          "platforms": [
+            "linux",
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "scheron/herdr-want-to-sleep",
+      "url": "https://github.com/scheron/herdr-want-to-sleep",
+      "indexedCommit": "120c210e838ec7333c14556c61e4f38eb462e3c3",
+      "description": "A herdr plugin that puts your Mac to sleep once no coding agent is working any more. Arm it before bed and it waits for every agent to settle, then journals what each one was doing — including the ones that ended up blocked.",
+      "classification": "sleep-scheduler-source-reviewed",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "scheron.want-to-sleep",
+          "name": "want-to-sleep",
+          "version": "0.2.0",
+          "minHerdrVersion": "0.7.0",
+          "description": "Arm it before bed. It waits until herdr reports that no agent is working any more, sleeps the Mac, and journals what every agent was doing — including the ones that ended up blocked.",
+          "platforms": [
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "susomejias/herdr-awake",
+      "url": "https://github.com/susomejias/herdr-awake",
+      "indexedCommit": "71c90c3e7809732c1e44336632893a65306db0ef",
+      "description": "Herdr plugin: keep the machine awake while Herdr agents are busy",
+      "classification": "direct-inhibitor-source-reviewed",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "herdr.awake",
+          "name": "Herdr Awake",
+          "version": "0.2.2",
+          "minHerdrVersion": "0.7.0",
+          "description": "Keep the machine awake while Herdr agents are busy",
+          "platforms": [
+            "linux",
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "tatoalo/herdr-remote-open-url",
+      "url": "https://github.com/tatoalo/herdr-remote-open-url",
+      "indexedCommit": "ac92fc73b0c7fadf17d1ebd299877ca3c1bd6137",
+      "description": "herdr plugin: Ctrl+click or pick a URL from a pane. Opens a browser where the host has one, copies to your clipboard when it does not.",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "remote-open-url",
+          "name": "Remote Open URL",
+          "version": "0.1.2",
+          "minHerdrVersion": "0.9.0",
+          "description": "Ctrl+click a URL or pick one from the pane. Opens a browser where the host has one, copies to your clipboard when it does not, and never pages an idle agent.",
+          "platforms": [
+            "linux",
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "TheMetalStorm/herdr-freebuff-plugin",
+      "url": "https://github.com/TheMetalStorm/herdr-freebuff-plugin",
+      "indexedCommit": "a49b1ea428fe6eb620288a3035984073927557d2",
+      "description": "Freebuff lifecycle integration plugin for Herdr — reports idle/working/blocked state via file polling and PTY content scraping",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "freebuff.integration",
+          "name": "Freebuff",
+          "version": "0.1.0",
+          "minHerdrVersion": "0.7.0",
+          "description": "Launch and manage Freebuff agents inside Herdr, with session restore and lifecycle state.",
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "TheThoughtagen/attic",
+      "url": "https://github.com/TheThoughtagen/attic",
+      "indexedCommit": "0c153023b59349cdb4f1a36f110fc5e5ef8d88b0",
+      "description": "Auto-closes idle AI coding sessions, but archives each one first so you can restore it.",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "attic",
+          "name": "attic",
+          "version": "0.1.0",
+          "minHerdrVersion": "0.8.0",
+          "description": "Archive idle agent panes and bring them back",
+          "platforms": [
+            "macos",
+            "linux"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "timjonez/herdr-agent-notes",
+      "url": "https://github.com/timjonez/herdr-agent-notes",
+      "indexedCommit": "d17662c4d16b64a87c8cb3d91ec824a3b6c00e02",
+      "description": "Herdr plugin: sticky notes on agents so you can see why one is idle.",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "agent-notes",
+          "name": "Agent Notes",
+          "version": "0.1.0",
+          "minHerdrVersion": "0.7.0",
+          "description": "Sticky notes on agents: waiting on a stakeholder, parked on PR review, and why a pane is idle.",
+          "platforms": [
+            "linux",
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "tmastalirsch/herdr-claude-safe-compact",
+      "url": "https://github.com/tmastalirsch/herdr-claude-safe-compact",
+      "indexedCommit": "1c3a64019f0a1e457f04c86fa9d261e13e456b50",
+      "description": "herdr plugin: compacts idle Claude Code panes, but only once a handoff is safely on disk",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "tlv.claude-safe-compact",
+          "name": "Claude Safe Compact",
+          "version": "0.1.0",
+          "minHerdrVersion": "0.8.2",
+          "description": "Compacts idle Claude panes — but only once a handoff is on disk, or once auto-compaction is imminent anyway",
+          "platforms": [
+            "macos",
+            "linux"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "usrivastava92/herdr-wakeup",
+      "url": "https://github.com/usrivastava92/herdr-wakeup",
+      "indexedCommit": "43db0b9f88a4b1bc560593b0ce8f2a7d2a940f04",
+      "description": "Herdr plugin that keeps macOS or Linux awake while Herdr-managed agents are working",
+      "classification": "direct-inhibitor-source-reviewed",
+      "manifests": [
+        {
+          "path": "plugin/herdr-plugin.toml",
+          "id": "herdr-wakeup",
+          "name": "Herdr Wakeup",
+          "version": "0.1.0",
+          "minHerdrVersion": "0.7.0",
+          "description": "Keep macOS/Linux awake while Herdr agents are working, using the standalone wakeup binary.",
+          "platforms": [
+            "macos",
+            "linux"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "wjarka/herdr-ghostty-tab-title",
+      "url": "https://github.com/wjarka/herdr-ghostty-tab-title",
+      "indexedCommit": "1fa5345f613091da2f1d678ff5ca04cec8dac314",
+      "description": "herdr plugin: color-coded agent status counts (blocked / done / working / idle) in the Ghostty tab title",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "ghostty-tab-title",
+          "name": "Ghostty tab title",
+          "version": "0.2.0",
+          "minHerdrVersion": "0.7.4",
+          "description": "Shows color-coded agent status counts (blocked / done / working / idle) in the Ghostty tab title.",
+          "platforms": [
+            "linux",
+            "macos"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "zbyhoo/herdr-wake_on_lan",
+      "url": "https://github.com/zbyhoo/herdr-wake_on_lan",
+      "indexedCommit": "49a820adfe66687e6417c2e8feea4453e5a191aa",
+      "description": "Wake sleeping Herdr SSH machines with Wake-on-LAN — terminal app and Herdr plugin",
+      "classification": "not-a-sleep-inhibitor-by-metadata",
+      "manifests": [
+        {
+          "path": "herdr-plugin.toml",
+          "id": "zbyhoo.wake-on-lan",
+          "name": "Wake on LAN",
+          "version": "0.1.1",
+          "minHerdrVersion": "0.9.0",
+          "description": "Wake sleeping saved SSH machines with a Wake-on-LAN magic packet",
+          "platforms": [
+            "macos",
+            "linux"
+          ]
+        }
+      ]
+    }
+  ]
+}

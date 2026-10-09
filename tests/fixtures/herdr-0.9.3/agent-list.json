@@ -1,0 +1,32 @@
+{
+  "id": "fixture",
+  "result": {
+    "type": "agent_list",
+    "agents": [
+      {
+        "terminal_id": "terminal-1",
+        "agent_status": "working"
+      },
+      {
+        "terminal_id": "terminal-2",
+        "agent_status": "idle"
+      },
+      {
+        "terminal_id": "terminal-3",
+        "agent_status": "idle"
+      },
+      {
+        "terminal_id": "terminal-4",
+        "agent_status": "idle"
+      },
+      {
+        "terminal_id": "terminal-5",
+        "agent_status": "idle"
+      },
+      {
+        "terminal_id": "terminal-6",
+        "agent_status": "working"
+      }
+    ]
+  }
+}
