@@ -13,6 +13,7 @@ use crate::{
         ipc::{self, Details, Incoming, Operation, Reply, ServerRow},
         paths::Paths,
         singleton::Owner,
+        update::{Handoff, RuntimeInfo},
     },
     status::*,
 };
@@ -34,6 +35,8 @@ struct Root {
     last_enabled: Option<u64>,
     endpoints: BTreeSet<String>,
     registered: BTreeSet<String>,
+    relinked: bool,
+    legacy: bool,
 }
 struct Server {
     observation: ServerObservation,
@@ -77,6 +80,15 @@ enum ResultEvent {
         generation: u64,
         request: u64,
         result: anyhow::Result<(Vec<Agent>, String)>,
+    },
+    RootPath {
+        key: String,
+        generation: u64,
+        path: std::path::PathBuf,
+    },
+    Update {
+        tracker: crate::runtime::update::SourceTracker,
+        candidate: Option<Box<(crate::runtime::cache::Binary, Registration, bool)>>,
     },
     Native {
         generation: u64,
@@ -252,12 +264,27 @@ pub struct Controller {
     root_inflight: usize,
     snapshot_jobs: BTreeMap<(String, u64, u64), tokio::task::AbortHandle>,
     root_jobs: BTreeMap<(String, u64), tokio::task::AbortHandle>,
+    stop_for_update: bool,
+    executable: std::path::PathBuf,
+    executable_digest: String,
+    source: std::path::PathBuf,
+    source_tracker: Option<crate::runtime::update::SourceTracker>,
+    update_due: u64,
+    update_ticket: Option<crate::runtime::update::Ticket>,
+    update_source: Option<(std::path::PathBuf, String)>,
+    rejected_updates: BTreeSet<String>,
+    update_error: Option<Issue>,
 }
 impl Controller {
     fn new(paths: Paths) -> anyhow::Result<Self> {
         let now = clock::now_ms();
         let config = ConfigStore::open(paths.config.clone());
         let logger = Logger::new(&paths.state)?;
+        let executable = std::env::current_exe()?;
+        let executable_digest = crate::runtime::cache::fingerprint(&executable)?;
+        let source = std::env::var_os("HERDR_IDLE_INHIBITOR_SOURCE_EXE")
+            .map(std::path::PathBuf::from)
+            .unwrap_or_else(|| executable.clone());
         Ok(Self {
             paths,
             config,
@@ -291,6 +318,19 @@ impl Controller {
             root_inflight: 0,
             snapshot_jobs: BTreeMap::new(),
             root_jobs: BTreeMap::new(),
+            stop_for_update: false,
+            executable,
+            executable_digest: executable_digest.clone(),
+            source_tracker: Some(crate::runtime::update::SourceTracker::new(
+                executable_digest,
+                source.clone(),
+            )),
+            source,
+            update_due: now,
+            update_ticket: None,
+            update_source: None,
+            rejected_updates: BTreeSet::new(),
+            update_error: None,
         })
     }
     fn coverage(&self, now: u64) -> bool {
@@ -358,6 +398,9 @@ impl Controller {
             ));
         }
         if let Some(i) = &self.native.last_error {
+            issues.push(i.clone());
+        }
+        if let Some(i) = &self.update_error {
             issues.push(i.clone());
         }
         Status {
@@ -441,6 +484,8 @@ impl Controller {
                     last_enabled: None,
                     endpoints: BTreeSet::new(),
                     registered: BTreeSet::from([endpoint.clone()]),
+                    relinked: false,
+                    legacy: false,
                 },
             );
         }
@@ -490,8 +535,13 @@ impl Controller {
                 self.config.apply(c)
             }
             Operation::ReloadSettings => self.config.reload(),
+            Operation::PrepareUpgrade => {
+                self.stop_for_update = true;
+                details = true;
+                Ok(())
+            }
         };
-        if !readonly {
+        if !readonly && !self.stop_for_update {
             self.evaluate(now, native);
         }
         let error = result.err().map(|_| {
@@ -501,6 +551,7 @@ impl Controller {
             )
         });
         let details = details.then(|| Details {
+            runtime: Some(self.runtime_info()),
             config: self.config.config.clone(),
             config_path: self.paths.config.to_string_lossy().into_owned(),
             servers: self
@@ -521,6 +572,110 @@ impl Controller {
             error,
             details,
         });
+    }
+    fn register_legacy(&mut self, endpoint: String, now: u64) -> anyhow::Result<()> {
+        let registration = Registration {
+            endpoint: endpoint.clone(),
+            herdr_bin: self.executable.clone(),
+            plugin_root: self.paths.state.clone(),
+            env: BTreeMap::from([("HERDR_CONFIG_PATH".into(), endpoint)]),
+            desktop: self.desktop.clone(),
+            bus: self.bus.clone(),
+        };
+        let key = registration.root_key();
+        self.register(registration, now)?;
+        self.roots.get_mut(&key).unwrap().legacy = true;
+        Ok(())
+    }
+    fn check_update(&mut self, now: u64, tx: &mpsc::Sender<ResultEvent>) {
+        if let Some(ticket) = &mut self.update_ticket {
+            if let Ok(Some(status)) = ticket.exited() {
+                if !status.success() {
+                    self.update_error = Some(Issue::new(
+                        "update_failed",
+                        "Automatic monitor replacement failed; inspect application logs",
+                    ));
+                    if let Some((_, digest)) = self.update_source.take() {
+                        self.rejected_updates.insert(digest.clone());
+                        if let Some(tracker) = &mut self.source_tracker {
+                            tracker.reject(digest);
+                        }
+                    }
+                }
+                self.update_ticket = None;
+            } else {
+                return;
+            }
+        }
+        if now < self.update_due || crate::runtime::update::pending(&self.paths).unwrap_or(true) {
+            return;
+        }
+        self.update_due = now + 5000;
+        let Some(mut tracker) = self.source_tracker.take() else {
+            return;
+        };
+        let roots: Vec<_> = self
+            .roots
+            .iter_mut()
+            .filter(|(_, r)| r.enabled == Some(true))
+            .map(|(key, r)| {
+                (
+                    key.clone(),
+                    r.registration.clone(),
+                    r.legacy,
+                    std::mem::take(&mut r.relinked),
+                )
+            })
+            .collect();
+        let state = self.paths.state.clone();
+        let tx = tx.clone();
+        tokio::task::spawn_blocking(move || {
+            let mut candidate = None;
+            for (key, registration, legacy, relinked) in roots {
+                let source = crate::runtime::cache::installed(&registration.plugin_root);
+                if relinked {
+                    tracker.retry(&source);
+                }
+                if let Ok(Some(_)) = tracker.inspect(&key, &source) {
+                    match crate::runtime::cache::stage(&source, &state) {
+                        Ok(image) => {
+                            candidate = Some(Box::new((image, registration, legacy)));
+                            break;
+                        }
+                        Err(_) => tracker.retry(&source),
+                    }
+                }
+            }
+            let _ = tx.blocking_send(ResultEvent::Update { tracker, candidate });
+        });
+    }
+    fn runtime_info(&self) -> RuntimeInfo {
+        RuntimeInfo {
+            paths: self.paths.clone(),
+            executable: self.executable.clone(),
+            source: self.source.clone(),
+            digest: self.executable_digest.clone(),
+            registrations: self
+                .roots
+                .values()
+                .filter(|r| !r.legacy)
+                .flat_map(|r| {
+                    r.registered.union(&r.endpoints).map(|endpoint| {
+                        let mut registration = r.registration.clone();
+                        registration.endpoint = endpoint.clone();
+                        registration
+                    })
+                })
+                .collect(),
+            legacy_endpoints: self
+                .roots
+                .values()
+                .filter(|r| r.legacy)
+                .flat_map(|r| r.registered.union(&r.endpoints).cloned())
+                .collect(),
+            effective_pause: (!self.config.pause_persisted).then_some(self.config.config.paused),
+            rejected_updates: self.rejected_updates.clone(),
+        }
     }
     fn schedule(&mut self, now: u64, tx: &mpsc::Sender<ResultEvent>) {
         for endpoint in &self.config.config.additional_endpoints {
@@ -552,8 +707,17 @@ impl Controller {
                     .is_some_and(|s| s.observation.current(now))
             });
             let job_key = (key.clone(), generation);
+            let legacy = r.legacy;
             let job = tokio::spawn(async move {
-                let discovery = crate::herdr::discovery::discover(&registration).await;
+                let discovery = if legacy {
+                    Ok(vec![Session {
+                        name: "legacy".into(),
+                        running: true,
+                        socket_path: registration.endpoint.clone(),
+                    }])
+                } else {
+                    crate::herdr::discovery::discover(&registration).await
+                };
                 let eligibility = async {
                     let mut candidates = registered;
                     for session in discovery
@@ -578,12 +742,24 @@ impl Controller {
                         .await
                             && let Ok(plugins) = protocol::parse_plugins(&frame, &id)
                         {
-                            return Ok(plugins.iter().any(|p| {
-                                p.plugin_id == crate::herdr::discovery::PLUGIN_ID
-                                    && p.enabled
-                                    && std::path::Path::new(&p.plugin_root)
-                                        == registration.plugin_root
-                            }));
+                            if let Some(plugin) = plugins
+                                .iter()
+                                .find(|p| p.plugin_id == crate::herdr::discovery::PLUGIN_ID)
+                            {
+                                let path = std::path::PathBuf::from(&plugin.plugin_root);
+                                anyhow::ensure!(path.is_absolute(), "invalid installation root");
+                                if path != registration.plugin_root {
+                                    let _ = tx
+                                        .send(ResultEvent::RootPath {
+                                            key: key.clone(),
+                                            generation,
+                                            path,
+                                        })
+                                        .await;
+                                }
+                                return Ok(plugin.enabled);
+                            }
+                            return Ok(false);
                         }
                     }
                     Err(anyhow::anyhow!("no installation endpoint answered"))
@@ -760,6 +936,67 @@ impl Controller {
                 } else {
                     s.due = now + if valid { 2000 } else { backoff(s.errors) };
                     s.trigger = "poll";
+                }
+            }
+            ResultEvent::RootPath {
+                key,
+                generation,
+                path,
+            } => {
+                if let Some(root) = self.roots.get_mut(&key)
+                    && root.generation == generation
+                    && root.registration.plugin_root != path
+                {
+                    root.relinked = true;
+                    root.registration.plugin_root = path;
+                }
+            }
+            ResultEvent::Update { tracker, candidate } => {
+                self.source_tracker = Some(tracker);
+                if let Some(candidate) = candidate {
+                    let (image, registration, direct) = *candidate;
+                    let info = self.runtime_info();
+                    let boot = Handoff {
+                        paths: info.paths,
+                        registrations: info.registrations,
+                        legacy_endpoints: info.legacy_endpoints,
+                        effective_pause: info.effective_pause,
+                        source: Some(info.source),
+                        rejected_updates: info.rejected_updates,
+                    };
+                    let plan = crate::runtime::update::Plan {
+                        paths: self.paths.clone(),
+                        candidate: image.clone(),
+                        publication: crate::runtime::update::Publication {
+                            executable: crate::runtime::cache::installed(&registration.plugin_root),
+                            digest: image.digest,
+                            plugin_root: registration.plugin_root.clone(),
+                            expected_commit: None,
+                        },
+                        base: registration,
+                        handoff: Some(boot),
+                        prepare: false,
+                        direct,
+                        discover_root: false,
+                        source_root: None,
+                        timeout_ms: 30_000,
+                    };
+                    self.update_source = Some((
+                        plan.publication.executable.clone(),
+                        plan.publication.digest.clone(),
+                    ));
+                    match crate::runtime::update::launch(&plan, &self.executable) {
+                        Ok(ticket) => self.update_ticket = Some(ticket),
+                        Err(_) => {
+                            self.update_error = Some(Issue::new(
+                                "update_failed",
+                                "Automatic monitor replacement failed; inspect application logs",
+                            ));
+                            if let Some(tracker) = &mut self.source_tracker {
+                                tracker.retry(&plan.publication.executable);
+                            }
+                        }
+                    }
                 }
             }
             ResultEvent::Native {
@@ -1003,10 +1240,48 @@ pub async fn serve(paths: Paths) -> anyhow::Result<()> {
 }
 /// Test injection preserves the real scheduler, parser, policy, and status transport.
 pub async fn serve_with(paths: Paths, backend: Box<dyn PowerBackend>) -> anyhow::Result<()> {
+    serve_with_handoff(
+        Handoff {
+            paths,
+            registrations: vec![],
+            legacy_endpoints: vec![],
+            effective_pause: None,
+            source: None,
+            rejected_updates: Default::default(),
+        },
+        backend,
+    )
+    .await
+}
+pub async fn serve_with_handoff(
+    boot: Handoff,
+    backend: Box<dyn PowerBackend>,
+) -> anyhow::Result<()> {
+    boot.validate()?;
+    let paths = boot.paths.clone();
     let Some(owner) = Owner::claim(paths.clone())? else {
         return Ok(());
     };
     let mut c = Controller::new(paths)?;
+    if let Some(source) = boot.source {
+        c.source = source;
+    }
+    let mut tracker =
+        crate::runtime::update::SourceTracker::new(c.executable_digest.clone(), c.source.clone());
+    c.rejected_updates = boot.rejected_updates;
+    for digest in &c.rejected_updates {
+        tracker.reject(digest.clone());
+    }
+    c.source_tracker = Some(tracker);
+    if let Some(paused) = boot.effective_pause {
+        c.config.inherit_pause(paused);
+    }
+    for registration in boot.registrations {
+        c.register(registration, clock::now_ms())?;
+    }
+    for endpoint in boot.legacy_endpoints {
+        c.register_legacy(endpoint, clock::now_ms())?;
+    }
     let (incoming_tx, mut incoming_rx) = mpsc::channel(16);
     let (result_tx, mut results) = mpsc::channel(64);
     let mut power = backend::power_events()?;
@@ -1032,10 +1307,10 @@ pub async fn serve_with(paths: Paths, backend: Box<dyn PowerBackend>) -> anyhow:
         tokio::select! {
             _=&mut stop=>break,
             _=&mut listener=>break,
-            Some(message)=incoming_rx.recv()=>{c.control(message,clock::now_ms(),&native);},
+            Some(message)=incoming_rx.recv()=>{c.control(message,clock::now_ms(),&native);if c.stop_for_update {break;}},
             Some(result)=results.recv()=>{c.result(result,clock::now_ms());c.evaluate(clock::now_ms(),&native);},
             Some(event)=power.recv()=>{c.power_event(event,clock::now_ms(),&native);},
-            _=tick.tick()=>{let now=clock::now_ms();c.observe_gap(now);c.last_tick=now;c.schedule(now,&result_tx);c.evaluate(now,&native);if c.retire_and_exit(now) {break;}},
+            _=tick.tick()=>{let now=clock::now_ms();c.observe_gap(now);c.last_tick=now;c.check_update(now,&result_tx);c.schedule(now,&result_tx);c.evaluate(now,&native);if c.retire_and_exit(now) {break;}},
         }
     }
     c.logger.transition("monitor_stopping");
@@ -1046,8 +1321,7 @@ pub async fn serve_with(paths: Paths, backend: Box<dyn PowerBackend>) -> anyhow:
 }
 
 #[cfg(test)]
-#[path = "../tests/support/tempdir.rs"]
-mod fixtures;
+use crate::fixtures;
 
 #[cfg(test)]
 mod tests {
@@ -1075,6 +1349,74 @@ mod tests {
             desktop: std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_default(),
             bus: std::env::var("DBUS_SESSION_BUS_ADDRESS").ok(),
         }
+    }
+    #[tokio::test]
+    async fn relink_before_the_first_binary_sample_is_not_an_unchanged_baseline() {
+        let dir = fixtures::tempdir();
+        let mut c = controller(dir.path());
+        let old = crate::runtime::cache::installed(dir.path());
+        let root = dir.path().join("replacement");
+        let new = crate::runtime::cache::installed(&root);
+        std::fs::create_dir_all(old.parent().unwrap()).unwrap();
+        std::fs::create_dir_all(new.parent().unwrap()).unwrap();
+        std::fs::write(&old, b"old code").unwrap();
+        std::fs::write(&new, b"new code").unwrap();
+        c.source_tracker = Some(crate::runtime::update::SourceTracker::new(
+            crate::runtime::cache::fingerprint(&old).unwrap(),
+            old,
+        ));
+        let r = registration(dir.path(), "a.sock");
+        let key = r.root_key();
+        c.register(r, 0).unwrap();
+        c.roots.get_mut(&key).unwrap().enabled = Some(true);
+        c.result(
+            ResultEvent::RootPath {
+                key,
+                generation: 0,
+                path: root,
+            },
+            1,
+        );
+        let (tx, mut rx) = mpsc::channel(8);
+        c.update_due = 0;
+        c.check_update(6000, &tx);
+        let result = tokio::time::timeout(Duration::from_secs(3), rx.recv())
+            .await
+            .unwrap()
+            .unwrap();
+        let ResultEvent::Update { candidate, .. } = result else {
+            panic!("missing update result")
+        };
+        assert!(
+            candidate.is_some(),
+            "relink before initial scan must replace loaded code"
+        );
+    }
+    #[test]
+    fn handoff_preserves_discovered_endpoints_even_when_they_were_never_registered() {
+        let dir = fixtures::tempdir();
+        let mut c = controller(dir.path());
+        let r = registration(dir.path(), "registered.sock");
+        let key = r.root_key();
+        let discovered = dir
+            .path()
+            .join("discovered.sock")
+            .to_string_lossy()
+            .into_owned();
+        c.register(r.clone(), 0).unwrap();
+        c.roots.get_mut(&key).unwrap().endpoints =
+            BTreeSet::from([r.endpoint.clone(), discovered.clone()]);
+        let info = c.runtime_info();
+        assert_eq!(
+            info.registrations.len(),
+            2,
+            "handoff must deduplicate the known endpoint union"
+        );
+        assert!(
+            info.registrations
+                .iter()
+                .any(|v| v.endpoint == discovered && v.root_key() == key)
+        );
     }
     #[tokio::test]
     async fn failed_config_operations_remain_in_shared_status_until_successful_reload() {

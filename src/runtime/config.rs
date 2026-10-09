@@ -178,6 +178,13 @@ impl ConfigStore {
         }
         result
     }
+    /// Carry an explicitly unsaved Pause through an update without writing settings.
+    pub fn inherit_pause(&mut self, paused: bool) {
+        if self.config.paused != paused {
+            self.config.paused = paused;
+            self.pause_persisted = false;
+        }
+    }
     pub fn set_paused(&mut self, paused: bool) -> anyhow::Result<()> {
         let mut c = self.config.clone();
         c.paused = paused;

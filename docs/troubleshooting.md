@@ -4,13 +4,7 @@
 
 ## Start with separate facts
 
-Query the executable in the installed checkout/bundle:
-
-```sh
-/path/to/plugin/target/release/herdr-idle-inhibitor status --json
-```
-
-On Windows use the `.exe` with PowerShell's `&` invocation operator. Read these separately:
+Start with **Status** and **Details** in the [popup](../README.md#2-open-status-and-settings). For a shareable machine-readable snapshot, run `status --json` using [your installation's executable path](status-api.md#finding-the-executable). Read these facts separately:
 
 - `available`: whether the monitor answered, not whether sleep prevention works.
 - `observation.work` / `complete`: reported work and coverage confidence.
@@ -30,11 +24,24 @@ Monitor activation precedes the popup request. Use the read-only status command 
 
 ## Monitor unavailable
 
-A standalone status query never starts the monitor. Installation/enable in an already-running server may also leave it unactivated until an action, qualifying event or server startup occurs.
+A standalone status query never starts the monitor. Source installation prepares automatic activation when running Herdr sessions are discoverable. Enabling an existing installation or linking a prebuilt bundle may still need an action, qualifying event or server startup.
 
-Check enabled state with `herdr plugin list`, then follow [activation](installation.md#first-activation). If startup failed, inspect plugin command logs and `monitor.log`. A live but unresponsive owner is an activation error, not permission to start another authority, delete a lock or kill a guessed PID.
+Check enabled state with `herdr plugin list`, then [open the popup to activate monitoring](../README.md#2-open-status-and-settings). If startup failed, inspect plugin command logs and `monitor.log`. A live but unresponsive owner is an activation error, not permission to start another authority, delete a lock or kill a guessed PID.
 
 A monitor can exit after all installations are disabled, after established absence of running servers, or after prolonged loss of observation. A crash is not automatically supervised; a later startup/event/action is needed.
+
+## Automatic update
+
+Follow the [README update command](../README.md#update), without changing Pause or disabling the plugin. A closed Windows popup or briefly unavailable status during the process switch can be normal; reopen the popup after installation.
+
+For `update_failed` or an install preparation error:
+
+1. Inspect Herdr's plugin command log and the application's `monitor.log`.
+2. Correct the reported filesystem, execution-policy or startup error, then retry installation. A recovered monitor does not mean Herdr's file installation succeeded.
+3. For a first update from an older release, check whether Herdr enabled-state queries succeeded; preparation can abort rather than replacing files under a live old owner.
+4. If the selected replacement predates automatic-update support, choose a compatible revision. That replacement is rejected before retiring the current monitor.
+
+Do not delete locks or terminate a PID copied from status. Compatible-code recovery and the first-update migration have different semantics; [How it works](behavior.md#failure-and-compatibility) explains them. For rebuilding a linked checkout in place on Windows, close its popup first as described in [Development](development.md#change-and-rebuild-a-linked-checkout).
 
 ## Configuration failures
 
@@ -46,7 +53,7 @@ A monitor can exit after all installations are disabled, after established absen
 | `config changed externally` | Reload your manual edits before saving from the popup |
 | Resume fails | Fix saving first; failed persistence does not enable new acquisition |
 
-There is no automatic file watcher. See [editing rules](configuration.md#editing-and-persistence); status queries do not Reload. If the popup is unavailable, load manual changes through the normal disable/stop/reactivate sequence rather than expecting a hidden hot reload.
+There is no automatic file watcher. See [editing rules](configuration.md#editing-and-persistence); status queries do not Reload. If the popup is unavailable, [disable and reactivate the monitor](../README.md#disable-re-enable-or-remove) to load manual changes rather than expecting a hidden hot reload.
 
 ## Linux setup or backend failure
 

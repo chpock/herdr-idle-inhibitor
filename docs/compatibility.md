@@ -1,6 +1,6 @@
 # Compatibility and limitations
 
-[Home](../README.md) · [Installation](installation.md) · [Troubleshooting](troubleshooting.md)
+[Home](../README.md) · [Advanced installation](advanced-installation.md) · [Troubleshooting](troubleshooting.md)
 
 ## Herdr and deployment scope
 
@@ -23,6 +23,8 @@ Linux checks the selected desktop program's version and rejects unqualified prof
 Linux binaries are built on Ubuntu 24.04 with **glibc 2.39**; older libc compatibility is not promised. There are no Linux/Windows arm64 artifacts. Both macOS architectures are native binaries, not a universal archive.
 
 Local workstation checks were performed on Linux. Native hosted builds, unit/integration tests, actual Windows/macOS API lifecycle and archive execution passed on Ubuntu 24.04, macOS **15.7.9** for both architectures, and Windows Server 2022. macOS 13 and Windows 10 are runtime targets, not those hosted execution environments. **Physical idle-sleep, display/lock, lid and hardware resume behavior, installed-Herdr lifecycle and clean-machine security prompts have not been certified.** GNOME/KDE checks use isolated D-Bus interfaces rather than physical desktops. Please report platform failures as [issues](https://github.com/chpock/herdr-idle-inhibitor/issues).
+
+Automatic-update process tests currently run on Linux. The new Windows replacement-lock test and macOS update bindings have been type-checked, but native hosted checks for this update mechanism have not yet run. This is separate from the previously verified native power API lifecycle.
 
 ## What a native request means
 
@@ -62,10 +64,10 @@ Microsoft documents the conditions in [PowerSetRequest](https://learn.microsoft.
 
 Native resources normally disappear after their owner terminates, subject to the precise PowerDevil exception above. A frozen/stopped process is not a dead process and can keep a request; application deadlines cannot execute while it is stopped.
 
-Herdr does not supervise the detached monitor. A later startup/event/action can reactivate it, but no finite restart guarantee exists without another event. Fresh observation is required after sleep/recovery; the plugin does not restore remembered work from disk. See [Usage](usage.md#timing-and-recovery).
+Herdr does not supervise the detached monitor. A later startup/event/action can reactivate it, but no finite restart guarantee exists without another event. Fresh observation is required after sleep/recovery; the plugin does not restore remembered work from disk. See [How it works](behavior.md#timing-and-recovery).
 
 ## Distribution and OS security
 
 Prebuilt bundles are unsigned; macOS archives are also unnotarized. Gatekeeper/quarantine or Windows SmartScreen may prevent execution. Approve an individual application only when you trust its origin; do not disable system-wide protections. CI archive execution is not a clean-machine approval or installation guarantee.
 
-A SHA-256 companion checks archive integrity but is not a signature. CI artifacts have limited retention and are not automatically promoted to published releases. Source installation remains available with the [required native toolchain](installation.md#requirements).
+A SHA-256 companion checks archive integrity but is not a signature. CI artifacts have limited retention and are not automatically promoted to published releases. Ordinary [GitHub installation](../README.md#get-started) builds from source. To build your own checkout instead, see the [development toolchain](development.md#toolchain).

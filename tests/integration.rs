@@ -461,3 +461,174 @@ async fn minimized_live_capture_replays_through_controller_and_private_status() 
         .unwrap();
     server.abort();
 }
+
+/// The handoff transfers registration context, never cached agent observations.
+#[tokio::test]
+async fn upgrade_releases_before_unlock_and_replays_all_roots_without_changing_settings() {
+    use herdr_idle_inhibitor::runtime::update::Handoff;
+    let dir = fixtures::tempdir();
+    let endpoint = |name: &str| dir.path().join(name).to_string_lossy().into_owned();
+    let a = endpoint("upgrade-a.sock");
+    let b = endpoint("upgrade-b.sock");
+    let discovered = endpoint("upgrade-discovered.sock");
+    let bin = dir
+        .path()
+        .join(if cfg!(windows) { "herdr.exe" } else { "herdr" });
+    assert!(
+        std::process::Command::new("rustc")
+            .args(["tests/support/fake_cli.rs", "-o"])
+            .arg(&bin)
+            .status()
+            .unwrap()
+            .success()
+    );
+    let enabled = Arc::new(AtomicBool::new(true));
+    let registry = Arc::new(AtomicUsize::new(0));
+    let mut servers = vec![];
+    let mut registrations = vec![];
+    for (index, address) in [a.clone(), b.clone()].into_iter().enumerate() {
+        let root = dir.path().join(format!("root-{index}"));
+        std::fs::create_dir(&root).unwrap();
+        let discovery = dir.path().join(format!("sessions-{index}.json"));
+        let mut sessions =
+            vec![serde_json::json!({"name":"default","running":true,"socket_path":address})];
+        if index == 0 {
+            sessions.push(
+                serde_json::json!({"name":"discovered","running":true,"socket_path":discovered}),
+            );
+        }
+        std::fs::write(
+            &discovery,
+            serde_json::json!({"sessions":sessions}).to_string(),
+        )
+        .unwrap();
+        registrations.push(Registration {
+            endpoint: address.clone(),
+            herdr_bin: bin.clone(),
+            plugin_root: root.clone(),
+            env: BTreeMap::from([(
+                "HERDR_CONFIG_PATH".into(),
+                discovery.to_string_lossy().into_owned(),
+            )]),
+            desktop: std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_default(),
+            bus: std::env::var("DBUS_SESSION_BUS_ADDRESS").ok(),
+        });
+        servers.push(tokio::spawn(fake_server(
+            address,
+            Arc::new(AtomicBool::new(true)),
+            enabled.clone(),
+            root.to_string_lossy().into_owned(),
+            registry.clone(),
+            None,
+        )));
+    }
+    servers.push(tokio::spawn(fake_server(
+        discovered.clone(),
+        Arc::new(AtomicBool::new(true)),
+        enabled.clone(),
+        registrations[0].plugin_root.to_string_lossy().into_owned(),
+        registry.clone(),
+        None,
+    )));
+    let paths = Paths {
+        config: dir.path().join("config.toml"),
+        state: dir.path().join("logs"),
+        runtime: dir.path().join("runtime"),
+        endpoint: endpoint("upgrade-control.sock"),
+    };
+    let mut config = herdr_idle_inhibitor::runtime::config::Config {
+        release_delay_secs: 0,
+        ..Default::default()
+    };
+    config.linux.backend = "hypridle".into();
+    config.linux.hypridle_integration_confirmed = true;
+    std::fs::write(&paths.config, toml::to_string(&config).unwrap()).unwrap();
+    let original = std::fs::read(&paths.config).unwrap();
+    let fake = Fake {
+        acquires: Arc::new(AtomicUsize::new(0)),
+        releases: Arc::new(AtomicUsize::new(0)),
+    };
+    let old = tokio::spawn(herdr_idle_inhibitor::controller::serve_with(
+        paths.clone(),
+        Box::new(fake.clone()),
+    ));
+    wait_status(&paths.endpoint, |_| true).await;
+    for registration in registrations.clone() {
+        ipc::query(
+            &paths.endpoint,
+            Operation::RegisterAndRefresh { registration },
+        )
+        .await
+        .unwrap();
+    }
+    let before = wait_status(&paths.endpoint, |v| {
+        v["observation"]["working_agents_observed"] == 3
+            && v["inhibition"]["resource_owned"] == true
+    })
+    .await;
+    assert_eq!(fake.acquires.load(Ordering::SeqCst), 1);
+    // Discovery for the non-installing root is no longer available, but its
+    // previously discovered socket still responds and needs a fresh snapshot.
+    std::fs::remove_file(&registrations[0].env["HERDR_CONFIG_PATH"]).unwrap();
+    let reply = ipc::query(&paths.endpoint, Operation::PrepareUpgrade)
+        .await
+        .unwrap();
+    let info = reply.details.unwrap().runtime.unwrap();
+    assert_eq!(info.registrations.len(), 3);
+    assert!(info.registrations.iter().any(|r| r.endpoint == discovered));
+    tokio::time::timeout(Duration::from_secs(4), old)
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        fake.releases.load(Ordering::SeqCst),
+        1,
+        "release must precede singleton availability"
+    );
+    let owner = herdr_idle_inhibitor::runtime::singleton::Owner::claim(paths.clone())
+        .unwrap()
+        .unwrap();
+    drop(owner);
+    assert_eq!(std::fs::read(&paths.config).unwrap(), original);
+    let boot = Handoff {
+        paths: paths.clone(),
+        registrations: info.registrations,
+        legacy_endpoints: vec![],
+        effective_pause: None,
+        source: None,
+        rejected_updates: Default::default(),
+    };
+    let new = tokio::spawn(herdr_idle_inhibitor::controller::serve_with_handoff(
+        boot,
+        Box::new(fake.clone()),
+    ));
+    let after = wait_status(&paths.endpoint, |v| {
+        v["observation"]["working_agents_observed"] == 3
+            && v["inhibition"]["resource_owned"] == true
+    })
+    .await;
+    assert_ne!(
+        before["monitor"]["instance_id"],
+        after["monitor"]["instance_id"]
+    );
+    assert_eq!(
+        after["diagnostics"]["counters"]["snapshot_valid"], 3,
+        "new owner must issue real snapshots, not reuse old observations"
+    );
+    assert_eq!(fake.acquires.load(Ordering::SeqCst), 2);
+    assert_eq!(fake.releases.load(Ordering::SeqCst), 1);
+    assert_eq!(std::fs::read(&paths.config).unwrap(), original);
+    ipc::query(&paths.endpoint, Operation::PrepareUpgrade)
+        .await
+        .unwrap();
+    tokio::time::timeout(Duration::from_secs(4), new)
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
+    assert_eq!(fake.releases.load(Ordering::SeqCst), 2);
+    for server in servers {
+        server.abort();
+    }
+}

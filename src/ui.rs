@@ -331,6 +331,9 @@ fn panic_restore() {
 }
 pub async fn run() -> anyhow::Result<()> {
     let paths = Paths::get()?;
+    crate::runtime::singleton::private_dir(&paths.state)?;
+    // Do not keep a Windows checkout open as the popup's working directory.
+    std::env::set_current_dir(&paths.state)?;
     panic_restore();
     terminal::enable_raw_mode()?;
     let _guard = TerminalGuard;
@@ -344,6 +347,9 @@ pub async fn run() -> anyhow::Result<()> {
     let (mut view, mut focus, mut notice) = (View::Main, 0, String::new());
     let mut refresh = tokio::time::Instant::now();
     loop {
+        if crate::runtime::update::pending(&paths)? {
+            break;
+        }
         if tokio::time::Instant::now() >= refresh {
             match ipc::query(&paths.endpoint, Operation::GetStatus { details: true }).await {
                 Ok(r) => {

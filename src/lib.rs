@@ -8,3 +8,7 @@ pub mod policy;
 pub mod runtime;
 pub mod status;
 pub mod ui;
+
+#[cfg(test)]
+#[path = "../tests/support/tempdir.rs"]
+pub(crate) mod fixtures;

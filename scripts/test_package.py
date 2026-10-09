@@ -13,6 +13,8 @@ class ManifestTests(unittest.TestCase):
         cargo = tomllib.loads((root / "Cargo.toml").read_text())
         self.assertEqual(source["version"], cargo["package"]["version"])
         self.assertEqual(source["build"][0]["command"], ["cargo", "build", "--release", "--locked", "--target-dir", "target"])
+        self.assertEqual(source["build"][1]["command"], ["./target/release/herdr-idle-inhibitor", "_prepare_update"])
+        self.assertEqual(len(source["build"]), 2)
         self.assertEqual(source["min_herdr_version"], "0.9.3")
         self.assertEqual({r["on"] for r in source["events"]}, {"pane.agent_status_changed", "pane.agent_detected", "pane.exited", "pane.closed", "workspace.created", "workspace.closed"})
         for target, (platform, filename) in TARGETS.items():

@@ -133,3 +133,43 @@ impl Drop for Owner {
         }
     }
 }
+
+/// Stable coordination inode; never unlink a live lock to force ownership.
+pub(crate) fn coordination_file(
+    directory: &Path,
+    name: &str,
+    create: bool,
+) -> anyhow::Result<File> {
+    if create {
+        private_dir(directory)?;
+    }
+    let path = directory.join(name);
+    let mut options = OpenOptions::new();
+    options
+        .read(true)
+        .write(true)
+        .create(create)
+        .truncate(false);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options
+            .mode(0o600)
+            .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC);
+    }
+    let file = options.open(&path)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        let m = file.metadata()?;
+        anyhow::ensure!(
+            m.is_file() && m.uid() == unsafe { libc::geteuid() } && m.mode() & 0o077 == 0,
+            "unsafe coordination file"
+        );
+    }
+    #[cfg(windows)]
+    if create {
+        super::windows_security::protect_path(&path)?;
+    }
+    Ok(file)
+}

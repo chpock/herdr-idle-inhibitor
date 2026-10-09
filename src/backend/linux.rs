@@ -402,15 +402,22 @@ mod tests {
             std::io::ErrorKind::WouldBlock
         );
         r.release().await.unwrap();
-        assert_eq!(
-            peer.lock()
-                .unwrap()
-                .as_mut()
-                .unwrap()
-                .read(&mut byte)
-                .unwrap(),
-            0
-        );
+        // The isolated bus may briefly retain the transferred FD in its outgoing
+        // message. Await observable EOF, not an assumed synchronous daemon drop.
+        tokio::time::timeout(std::time::Duration::from_secs(2), async {
+            loop {
+                let result = peer.lock().unwrap().as_mut().unwrap().read(&mut byte);
+                match result {
+                    Ok(0) => break,
+                    Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                        tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+                    }
+                    other => panic!("unexpected released inhibitor FD state: {other:?}"),
+                }
+            }
+        })
+        .await
+        .unwrap();
     }
     #[tokio::test]
     async fn gnome_exact_flag_cookie_and_sole_connection_cleanup() {

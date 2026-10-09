@@ -22,6 +22,12 @@ pub struct Plugin {
     pub plugin_id: String,
     pub enabled: bool,
     pub plugin_root: String,
+    #[serde(default)]
+    pub source: Option<PluginSource>,
+}
+#[derive(Debug, Clone, Deserialize)]
+pub struct PluginSource {
+    pub resolved_commit: Option<String>,
 }
 #[derive(Deserialize)]
 #[serde(tag = "type")]

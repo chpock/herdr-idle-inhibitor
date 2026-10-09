@@ -24,10 +24,21 @@ pub struct Registration {
 }
 impl Registration {
     pub fn from_env() -> anyhow::Result<Self> {
+        Self::for_root(
+            std::env::var("HERDR_BIN_PATH")?.into(),
+            std::env::var("HERDR_PLUGIN_ROOT")?.into(),
+            std::env::var("HERDR_SOCKET_PATH")?,
+        )
+    }
+    pub fn for_root(
+        herdr_bin: PathBuf,
+        plugin_root: PathBuf,
+        endpoint: String,
+    ) -> anyhow::Result<Self> {
         let r = Self {
-            endpoint: std::env::var("HERDR_SOCKET_PATH")?,
-            herdr_bin: std::env::var("HERDR_BIN_PATH")?.into(),
-            plugin_root: std::env::var("HERDR_PLUGIN_ROOT")?.into(),
+            endpoint,
+            herdr_bin,
+            plugin_root,
             env: ROOT_ENV
                 .iter()
                 .filter_map(|k| std::env::var(k).ok().map(|v| (k.to_string(), v)))

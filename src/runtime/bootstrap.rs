@@ -12,15 +12,23 @@ use std::{
 pub async fn ensure(r: Registration) -> anyhow::Result<Reply> {
     r.validate()?;
     let paths = Paths::get()?;
+    let Some(_activation) = super::update::activation_guard(&paths, &r).await? else {
+        anyhow::bail!("Update in progress; monitoring will resume automatically");
+    };
     let operation = Operation::RegisterAndRefresh { registration: r };
     match query(&paths.endpoint, operation.clone()).await {
-        Ok(reply) => return checked(reply),
+        Ok(reply) => return checked(reply, &paths).await,
         Err(e) if e.exit == 3 => (),
         Err(e) => anyhow::bail!("monitor activation failed: {}", e.code),
     }
     private_dir(&paths.state)?;
     let log = crate::diagnostics::open_log(&paths.state)?;
-    let mut command = Command::new(std::env::current_exe()?);
+    let source = std::env::current_exe()?;
+    let image = super::cache::stage(&source, &paths.state)?;
+    let mut command = Command::new(&image.path);
+    command
+        .current_dir(&paths.state)
+        .env("HERDR_IDLE_INHIBITOR_SOURCE_EXE", &source);
     command
         .arg("_serve")
         .stdin(Stdio::null())
@@ -31,6 +39,7 @@ pub async fn ensure(r: Registration) -> anyhow::Result<Reply> {
             && key != "HERDR_CONFIG_PATH"
             && key != "HERDR_IDLE_INHIBITOR_CONFIG"
             && key != "HERDR_IDLE_INHIBITOR_STATE"
+            && key != "HERDR_IDLE_INHIBITOR_SOURCE_EXE"
         {
             command.env_remove(key);
         }
@@ -58,7 +67,7 @@ pub async fn ensure(r: Registration) -> anyhow::Result<Reply> {
     let deadline = tokio::time::Instant::now() + Duration::from_secs(3);
     loop {
         match query(&paths.endpoint, operation.clone()).await {
-            Ok(reply) => return checked(reply),
+            Ok(reply) => return checked(reply, &paths).await,
             Err(e) if e.exit == 3 => (),
             Err(e) => anyhow::bail!("monitor activation failed: {}", e.code),
         }
@@ -75,9 +84,10 @@ pub async fn ensure(r: Registration) -> anyhow::Result<Reply> {
         tokio::time::sleep(Duration::from_millis(50)).await;
     }
 }
-fn checked(reply: Reply) -> anyhow::Result<Reply> {
+async fn checked(reply: Reply, paths: &Paths) -> anyhow::Result<Reply> {
     if let Some(e) = &reply.error {
         anyhow::bail!("{}: {}", e.code, e.message);
     }
+    super::update::replay_pending(paths).await?;
     Ok(reply)
 }

@@ -1,8 +1,8 @@
 # Public status API, version 1
 
-[Home](../README.md) · [Usage](usage.md) · [JSON Schema](../schemas/status-v1.json)
+[Home](../README.md) · [How it works](behavior.md) · [JSON Schema](../schemas/status-v1.json)
 
-This is the implemented, read-only JSON interface for external consumers. Native request acknowledgment is not a physical sleep guarantee; see [Compatibility](compatibility.md). Herdr does not add the executable to PATH: use [your installation's executable path](installation.md#external-executable-path).
+This is the implemented, read-only JSON interface for external consumers. Native request acknowledgment is not a physical sleep guarantee; see [Compatibility](compatibility.md). Herdr does not add the executable to PATH: use [your installation's executable path](#finding-the-executable). This command is for scripts and diagnostics; ordinary status/settings use the [popup](../README.md#2-open-status-and-settings).
 
 ## Command and side effects
 
@@ -15,6 +15,42 @@ A syntactically valid invocation writes one UTF-8 JSON object followed by one ne
 The query only reads an already running per-user monitor. It does not create application directories/files, bootstrap/restart/register anything, query Herdr, validate a desktop through a new power request, or acquire/release an inhibitor. An in-memory diagnostic read counter may advance. The command has a total two-second deadline; no retry loop that outlives it.
 
 There is no public `watch`, outbound command hook, HTTP endpoint, or remote address option. Internal local IPC can evolve independently as long as this public projection remains compatible.
+
+## Finding the executable
+
+Herdr's action command launches asynchronously and does **not** return the plugin's JSON stdout or exit code. For a machine-readable result, call the executable directly. It can run outside Herdr without a plugin invocation environment, and can be added to your own PATH if desired.
+
+### GitHub installation on Linux/macOS
+
+With Herdr's default configuration directory:
+
+```sh
+"$HOME/.config/herdr/plugins/github/herdr-idle-inhibitor-47c45c649c56/target/release/herdr-idle-inhibitor" status --json
+```
+
+If `XDG_CONFIG_HOME` is set for Herdr, replace `$HOME/.config` with that directory. The installation suffix comes from the plugin ID and stays the same on updates; it is not a version or commit identifier.
+
+### GitHub installation on Windows
+
+With Herdr's default configuration directory, use PowerShell:
+
+```powershell
+& "$env:APPDATA\herdr\plugins\github\herdr-idle-inhibitor-47c45c649c56\target\release\herdr-idle-inhibitor.exe" status --json
+```
+
+If `XDG_CONFIG_HOME` is set for Herdr, it takes precedence over `APPDATA`; use that directory instead.
+
+### Linked bundles, checkouts and custom locations
+
+Find the registered installation:
+
+```sh
+herdr plugin list --plugin herdr-idle-inhibitor --json
+```
+
+Read `plugin_root` from `result.plugins`. The executable is `target/release/herdr-idle-inhibitor` beneath that directory (`herdr-idle-inhibitor.exe` on Windows). A linked installation uses the directory you supplied, not the GitHub installation directory. `herdr plugin config-dir` reports a separate settings directory, not the executable location.
+
+Exit **3** (`monitor_unavailable`) confirms that no monitor answered. Use it when checking that a disabled monitor has stopped, but never treat it as proof that no agents are working or that all OS sleep requests are gone. Full [exit-code semantics](#exit-codes-and-compatibility) are below.
 
 ## Result shape
 

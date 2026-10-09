@@ -69,6 +69,7 @@ fn every_supported_focus_is_visible_and_unsaved_pause_warning_survives_reopen_an
         config,
         config_path: "private-config".into(),
         servers: vec![],
+        runtime: None,
     };
     let mut settings = vec!["Pause: true", "Release delay"];
     if cfg!(target_os = "linux") {

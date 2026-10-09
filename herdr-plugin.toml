@@ -8,6 +8,9 @@ platforms = ["linux", "macos", "windows"]
 [[build]]
 command = ["cargo", "build", "--release", "--locked", "--target-dir", "target"]
 
+[[build]]
+command = ["./target/release/herdr-idle-inhibitor", "_prepare_update"]
+
 [[startup]]
 command = ["./target/release/herdr-idle-inhibitor", "_ensure"]
 

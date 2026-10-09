@@ -1,6 +1,8 @@
 # Configuration
 
-[Home](../README.md) · [Usage](usage.md) · [Hypridle setup](hypridle-setup.md)
+[Home](../README.md) · [How it works](behavior.md) · [Hypridle setup](hypridle-setup.md)
+
+For everyday changes, use [Settings in the popup](../README.md#everyday-use). This reference covers stored settings, manual editing and advanced endpoints/paths.
 
 Settings are shared by the current OS user's monitor, not by workspace, Herdr server or plugin checkout. The monitor is the application's only configuration writer. Configuration stores preferences, not agent history or proof that a native request exists.
 
@@ -13,6 +15,8 @@ Settings are shared by the current OS user's monitor, not by workspace, Herdr se
 | Windows | Known Folder LocalAppData, `herdr-idle-inhibitor/config.toml` | Same application directory, `logs/` |
 
 On Windows the OS Known Folder location is authoritative; changing the text of an environment variable is not a way to relocate it. The private runtime lock lives under that application's `runtime/` directory. Unix rendezvous uses a private `herdr-idle-inhibitor-<uid>` directory beneath canonical `/tmp`.
+
+The log/state directory also contains `bin/` (private cached executables) and `updates/` (automatic-update control files). Long-lived monitors run from these copies so the installed checkout remains replaceable. These files are not configuration or agent history; do not remove them while monitoring or an update is active.
 
 A missing config is initialized with defaults when monitoring is activated, never by `status --json`. Invalid startup configuration prevents acquisition. A read-only status query does not create these directories or files.
 
@@ -40,7 +44,7 @@ Missing settings receive defaults. Unknown keys, wrong types, unsupported schema
 | `linux.backend` | `auto`, `hypridle`, `gnome`, `kde` | Linux desktop mechanism selection |
 | `linux.hypridle_integration_confirmed` | Boolean; default `false` | Your acknowledgment that the required Hypridle listener setup is complete |
 
-The `[linux]` section is accepted on every platform, but backend selection and Hypridle acknowledgment only affect Linux. Timing other than release delay is fixed; see [Usage](usage.md#timing-and-recovery).
+The `[linux]` section is accepted on every platform, but backend selection and Hypridle acknowledgment only affect Linux. Timing other than release delay is fixed; see [How it works](behavior.md#timing-and-recovery).
 
 ## Linux backend selection
 
@@ -78,7 +82,7 @@ These are illustrative paths, not defaults. URLs, NULs and Windows remote UNC pa
 - If the file changed externally, a popup save is rejected until you Reload; stale popup state cannot silently overwrite your edits.
 - Pause applies in memory even if saving fails, with **PAUSE NOT SAVED** visible. Resume requires successful saving.
 
-If the popup is unavailable, edit the file and follow the [disable/stop/reactivate sequence](installation.md#update) to load it at the next monitor startup. Do not assume that another event or a status query hot-reloads a running monitor.
+If the popup is unavailable, [disable the plugin and wait for the monitor to stop](../README.md#disable-re-enable-or-remove), edit the file, then re-enable it and open the popup as described there. In a multi-root setup, disable it in every Herdr configuration directory so the shared process actually stops. The [status command](status-api.md#finding-the-executable) can confirm unavailability. This is maintenance for loading manual changes, not an update procedure. Another event or a status query does not hot-reload a running monitor.
 
 The application replaces configuration through a temporary file in the same directory. Unix configuration directories/files are user-private. No database or native ownership flag is persisted.
 

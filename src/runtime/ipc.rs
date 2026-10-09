@@ -36,6 +36,7 @@ pub enum Operation {
         patch: SettingsPatch,
     },
     ReloadSettings,
+    PrepareUpgrade,
 }
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -57,6 +58,8 @@ pub struct Details {
     pub config: crate::runtime::config::Config,
     pub config_path: String,
     pub servers: Vec<ServerRow>,
+    #[serde(default)]
+    pub runtime: Option<super::update::RuntimeInfo>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServerRow {

@@ -32,6 +32,14 @@ enum Commands {
     Open,
     #[command(name = "_ui", hide = true)]
     Ui,
+    #[command(name = "_prepare_update", hide = true)]
+    PrepareUpdate,
+    #[command(name = "_upgrade_worker", hide = true)]
+    UpgradeWorker { plan: std::path::PathBuf },
+    #[command(name = "_resume", hide = true)]
+    Resume { handoff: std::path::PathBuf },
+    #[command(name = "_capabilities", hide = true)]
+    Capabilities,
 }
 #[tokio::main]
 async fn main() -> ExitCode {
@@ -78,6 +86,26 @@ async fn main() -> ExitCode {
         }
         Commands::Open => open().await,
         Commands::Ui => herdr_idle_inhibitor::ui::run().await,
+        Commands::PrepareUpdate => herdr_idle_inhibitor::runtime::update::prepare().await,
+        Commands::UpgradeWorker { plan } => {
+            herdr_idle_inhibitor::runtime::update::worker(&plan).await
+        }
+        Commands::Resume { handoff } => {
+            match herdr_idle_inhibitor::runtime::update::read_handoff(&handoff) {
+                Ok(boot) => {
+                    herdr_idle_inhibitor::controller::serve_with_handoff(
+                        boot,
+                        Box::new(herdr_idle_inhibitor::backend::NativeBackend),
+                    )
+                    .await
+                }
+                Err(e) => Err(e),
+            }
+        }
+        Commands::Capabilities => {
+            println!("{{\"update_protocol\":1}}");
+            Ok(())
+        }
         Commands::Status { .. } => unreachable!(),
     };
     match result {

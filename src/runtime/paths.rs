@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Paths {
     pub config: PathBuf,
     pub state: PathBuf,
