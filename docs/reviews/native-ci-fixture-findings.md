@@ -27,4 +27,4 @@ Production registration correctly normalizes Unix endpoint parents. Controller t
 
 After correction, the entire Linux Rust suite completed under the same aliased `TMPDIR` (48 tests passed, none failed). Formatting, all-target Clippy with warnings denied and all four packaging tests also passed. Exact local reproduction/output files are retained under `/tmp/herdr-native-ci/` during this session; the final hosted-run record will retain portable evidence.
 
-Independent re-review and the corrected four-platform hosted run remain required before closing native acceptance.
+[Fresh independent re-review](native-ci-fixtures.md) closed the correction with no findings. The unchanged four-platform workflow subsequently passed on source commit `54cdf3686948dfa882274ecd601c79022a89eb3d`, including both real macOS assertion probes and all target bundle checks. See [retained native evidence](../validation/native-ci.md). This closes the fixture defect and hosted gate, not physical or installed-Herdr acceptance.

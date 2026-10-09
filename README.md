@@ -10,15 +10,15 @@ A Rust plugin initially qualified for **Herdr 0.9.3**. Other Herdr versions are 
 
 ## Compatibility and verification
 
-**Runtime testing has only been performed on Linux. macOS and Windows are implemented and expected to work, but have not been physically tested. Please open an issue if they do not.** GNOME/KDE framing is tested against isolated services; this is not a claim of physical desktop sleep certification. GitHub native build/test jobs are configured, not claimed to have run before publication.
+**Local workstation checks have only been performed on Linux. Native GitHub build/unit/integration, API-lifecycle and bundle checks passed on Linux x86_64, macOS arm64/x86_64 and Windows x86_64 MSVC. No physical sleep-effectiveness matrix has been performed on any platform.** macOS and Windows are expected to work; please open an issue if they do not. GNOME/KDE framing is tested against isolated services, not physically certified. See [actual native results and exact environment versions](docs/validation/native-ci.md).
 
 | Platform | Adapter / initial source-qualified profile | Verification boundary |
 | --- | --- | --- |
 | Linux x86_64 GNU | Hyprland + Hypridle **0.1.8**, logind `idle / block` | Local native acquire/release and abrupt-owner cleanup; requires the listener setup below |
 | Linux x86_64 GNU | GNOME session **51.0**, suspend-only flag `4` | Source review and isolated D-Bus tests; no physical GNOME certification |
 | Linux x86_64 GNU | PowerDevil **6.7.5**, `InterruptSession` only | Source review and isolated D-Bus tests; real pending delay and user suppression; accepted cleanup limitation below |
-| macOS arm64 / x86_64 | IOKit `PreventUserIdleSystemSleep` | Deployment target macOS 13; native CI tests configured, physical tests unavailable |
-| Windows x86_64 | `PowerRequestSystemRequired` | Windows 10+ native host; native CI tests configured, physical tests unavailable |
+| macOS arm64 / x86_64 | IOKit `PreventUserIdleSystemSleep` | Deployment target macOS 13; native CI/assertion lifecycle passed on 15.7.9 for both architectures, physical tests unavailable |
+| Windows x86_64 | `PowerRequestSystemRequired` | Native MSVC/IPC/power-request/notification lifecycle passed on Windows Server 2022; physical tests unavailable |
 
 Unknown Linux profiles/versions produce an actionable error rather than a stronger fallback inhibitor. Initial Linux artifacts are built on Ubuntu 24.04 (glibc 2.39); older libc compatibility is not promised. WSL, containers controlling the host, remote machines and concurrent mixed-desktop login sessions are outside the supported deployment.
 

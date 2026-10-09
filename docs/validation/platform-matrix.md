@@ -2,7 +2,7 @@
 
 ## Verification authority
 
-The owner authorized full implementation without physical Windows/macOS access, substituting native GitHub build/unit/integration jobs and honest Linux-only runtime claims. At the implementation commit boundary hosted jobs have not yet run. The owner has now requested the commit and native target-platform checks, authorizing CI submission to the existing repository; actual results will be recorded separately. Release publication remains unauthorized. Cross-checks and configured jobs are not native execution certificates. Linux physical sleep/lock/lid counterfactual trials were not performed or claimed; the workstation's settings and installed plugins were preserved.
+The owner authorized full implementation without physical Windows/macOS access, substituting native GitHub build/unit/integration jobs and honest verification boundaries. On 2026-10-09 the owner additionally authorized commits and CI submission to the existing repository. All four native jobs subsequently passed against source commit `54cdf3686948dfa882274ecd601c79022a89eb3d`; see [actual native evidence](native-ci.md). Release publication remains unauthorized. Cross-checks/configuration alone are not native execution certificates. Physical sleep/lock/lid counterfactual trials were not performed or claimed; the workstation's settings and installed plugins were preserved.
 
 ## Fixed build choices
 
@@ -10,14 +10,14 @@ The owner authorized full implementation without physical Windows/macOS access, 
 - One Cargo package and executable; existing GPL-3.0 license retained.
 - Reference desktop profiles: Hypridle **0.1.8**, GNOME session **51.0**, PowerDevil **6.7.5**. No stronger fallback for another profile.
 - CI source: `.github/workflows/ci.yml`, immutable checkout/setup-python/upload-artifact/toolchain action revisions resolved against their official Git references.
-- Hosted labels are fixed OS/architecture choices, not immutable VM patch images. Every job records ImageOS/ImageVersion, runner architecture, commit, compiler and OS/SDK evidence; actual image versions remain pending the first run.
+- Hosted labels are fixed OS/architecture choices, not immutable VM patch images. Every job records ImageOS/ImageVersion, runner architecture, commit, compiler and OS/SDK evidence; actual tested image versions are retained in [the successful run record](native-ci/37940265352.json).
 
 | Native target | Runner / SDK baseline | Current evidence |
 | --- | --- | --- |
-| x86_64-unknown-linux-gnu | Ubuntu 24.04, glibc 2.39; isolated dbus-daemon tests | Local Linux Rust checks/tests and real logind ownership passed; hosted Ubuntu build not run |
-| aarch64-apple-darwin | macos-15 arm64; Xcode 16.4 build 16F6 / macOS SDK 15.5; deployment target 13.0 | All-target Linux-hosted official Rust cross-type-check passed; native compile/link/API probes pending CI |
-| x86_64-apple-darwin | macos-15-intel; same SDK/deployment baseline | Native compile/link/API probes pending CI; no physical environment |
-| x86_64-pc-windows-msvc | windows-2022, Windows SDK/MSVC from recorded runner image | GNU Windows all-target cross-type-check passed; MSVC linking/native security/API tests pending CI |
+| x86_64-unknown-linux-gnu | Ubuntu 24.04, glibc 2.39; isolated dbus-daemon tests | Local logind ownership/owner-death passed; native hosted build, 48 Rust tests and bundle/offline-source verification passed |
+| aarch64-apple-darwin | macos-15 arm64; Xcode 16.4 build 16F6 / macOS SDK 15.5; deployment target 13.0 | Native compile/link, 42 ordinary tests plus real assertion lifecycle and bundle/offline-source verification passed on macOS 15.7.9 |
+| x86_64-apple-darwin | macos-15-intel; same SDK/deployment baseline | Native compile/link, 42 ordinary tests plus real assertion lifecycle and bundle/offline-source verification passed on macOS 15.7.9; no physical environment |
+| x86_64-pc-windows-msvc | windows-2022, Windows SDK/MSVC from recorded runner image | Native MSVC linking, 42 ordinary tests, power-request and notification lifecycle, IPC/detachment and bundle/offline-source verification passed |
 
 The macOS architecture labels and SDK selection were checked against the official [runner catalog](https://github.com/actions/runner-images/blob/main/README.md) and both macOS 15 image READMEs. `macos-15-intel` is an ordinary hosted label, not a paid `-large` selection. CI verifies the compiler host matches the native target and rejects accidental cross execution. Xcode/SDK availability/version mismatch fails explicitly rather than silently changing the baseline.
 
@@ -34,4 +34,4 @@ The workstation compiler identifies as rustc 1.98.0 (88d9e12ae, 2026-08-18), Arc
 
 ## Remaining boundaries
 
-No hosted CI job, macOS quarantine/installation trial, Windows SmartScreen/clean-machine trial, cross-architecture installer trial, or physical Windows/macOS sleep matrix has passed by being configured. No fake desktop service certifies real GNOME/KDE power behavior. The accepted Windows battery limitation and precise accepted KDE suppression/owner-death/reallow cleanup exception remain visible in README and diagnostics.
+Hosted CI passed by actual execution, not configuration; [the native record](native-ci.md) fixes its scope, compiler/image/SDK versions and source SHA. macOS quarantine/installation, Windows SmartScreen/clean-machine, cross-architecture installation and physical power trials remain unrun. No fake desktop service certifies real GNOME/KDE sleep behavior. The accepted Windows battery limitation and precise accepted KDE suppression/owner-death/reallow cleanup exception remain visible in README and diagnostics.
