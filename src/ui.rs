@@ -43,9 +43,9 @@ fn rows(view: View) -> usize {
         View::Main => 4,
         View::Settings => {
             if cfg!(target_os = "linux") {
-                5
-            } else {
                 4
+            } else {
+                3
             }
         }
         View::Details => 1,
@@ -206,17 +206,15 @@ pub fn draw(
                         2,
                         format!("Linux backend: {} (Enter cycles)", c.linux.backend),
                     );
-                    action(3, "Reload TOML settings".into());
-                    action(4, "Back".into());
-                } else {
-                    action(2, "Reload TOML settings".into());
                     action(3, "Back".into());
+                } else {
+                    action(2, "Back".into());
                 }
                 if cfg!(target_os = "linux") {
                     lines.push(Line::from("Hypridle may also delay display-off/locking. Optional listener tuning: docs/troubleshooting.md."));
                 }
                 lines.push(Line::from(
-                    "Advanced local endpoints: edit TOML, then Reload.",
+                    "TOML edits load automatically (checked every 2s).",
                 ));
             } else {
                 lines.push(Line::from("Monitor unavailable. Return and choose Retry."));
@@ -476,12 +474,10 @@ pub async fn run() -> anyhow::Result<()> {
                                 });
                             }
                             3 if cfg!(target_os = "linux") => {
-                                operation = Some(Operation::ReloadSettings)
+                                view = View::Main;
+                                focus = 0;
                             }
                             2 if !cfg!(target_os = "linux") => {
-                                operation = Some(Operation::ReloadSettings)
-                            }
-                            4 | 3 if !cfg!(target_os = "linux") || focus == 4 => {
                                 view = View::Main;
                                 focus = 0;
                             }

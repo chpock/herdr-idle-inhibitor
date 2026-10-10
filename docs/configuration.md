@@ -18,7 +18,7 @@ On Windows the OS Known Folder location is authoritative; changing the text of a
 
 The log/state directory also contains `bin/` (private cached executables) and `updates/` (automatic-update control files). Long-lived monitors run from these copies so the installed checkout remains replaceable. These files are not configuration or agent history; do not remove them while monitoring or an update is active.
 
-A missing config is initialized with defaults when the monitor starts, never by `status --json`. Invalid startup configuration prevents acquisition. A read-only status query does not create these directories or files.
+A missing config is initialized with defaults when the monitor starts. If it disappears while the monitor is running, the monitor recreates it with the current settings, including Pause. Invalid startup configuration prevents acquisition until a corrected file is loaded automatically. A read-only `status --json` query never creates these directories or files.
 
 ## Default file
 
@@ -73,12 +73,14 @@ These are illustrative paths, not defaults. URLs, NULs and Windows remote UNC pa
 ## Editing and persistence
 
 - Popup settings take effect through acknowledged operations on the shared monitor.
-- Manual edits are loaded at startup or by **Reload** in Settings; there is no file watcher.
-- A rejected reload keeps the last valid runtime settings and reports the failure. The invalid file is not overwritten automatically.
-- If the file changed externally, a popup save is rejected until you Reload; stale popup state cannot silently overwrite your edits.
-- Pause applies in memory even if saving fails, with **PAUSE NOT SAVED** visible. Resume requires successful saving.
+- Manual edits load automatically. Every two seconds, the running monitor checks the file's modification time and size; unchanged files are not reread or reparsed. No popup, Herdr event or restart is needed.
+- Saving through a temporary file and renaming it over `config.toml` is supported. The application records its own saves so they do not trigger a redundant reload.
+- Invalid edits keep the last valid runtime settings and report the error in Details / JSON diagnostics. The invalid file is not overwritten or repeatedly parsed; correct and save it to retry. With an invalid startup file, new acquisition stays disabled until the file is corrected.
+- If the file disappears, it is recreated with the current runtime settings rather than resetting preferences. Filesystem access/creation failures are reported and retried at the same two-second interval.
+- If an external edit has not loaded yet, a popup save is rejected rather than silently overwriting it. Wait for automatic loading before retrying. Fix invalid edits first.
+- Pause applies in memory even if saving fails, with **PAUSE NOT SAVED** visible. Automatic loading does not undo that unsaved Pause. Use Resume to save an unpaused state, or save `paused = true` to persist the live Pause; recreating a deleted file also preserves and saves it.
 
-To load manual edits when Settings is unavailable, [disable the plugin and wait for the monitor to stop](../README.md#disable-re-enable-or-remove), edit the file, then re-enable it. The next automatic start loads the edited file; the [optional manual start](../README.md#optional-manual-start) loads it immediately. In a multi-root setup, disable it in every Herdr configuration directory so the shared process actually stops. The [status command](status-api.md#finding-the-executable) can confirm unavailability. This is maintenance for loading manual changes, not an update procedure. Another event or a status query does not hot-reload a running monitor.
+Checks run in the existing monitor loop without an OS file-watcher service or additional thread. They are scheduling targets, not a hard real-time guarantee. `status --json` and passive popup refreshes only read monitor state; they do not trigger configuration checks or file creation.
 
 The application replaces configuration through a temporary file in the same directory. Unix configuration directories/files are user-private. No database or native ownership flag is persisted.
 

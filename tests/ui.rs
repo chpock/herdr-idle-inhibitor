@@ -75,7 +75,7 @@ fn every_supported_focus_is_visible_and_unsaved_pause_warning_survives_reopen_an
     if cfg!(target_os = "linux") {
         settings.push("Linux backend");
     }
-    settings.extend(["Reload TOML settings", "Back"]);
+    settings.push("Back");
     for (width, height) in [(50, 10), (52, 12), (64, 22), (100, 35)] {
         for (view, labels) in [
             (
@@ -100,8 +100,9 @@ fn every_supported_focus_is_visible_and_unsaved_pause_warning_survives_reopen_an
                         .map(|c| c.symbol())
                         .collect();
                     assert!(
-                        !screen.contains("Hypridle integration confirmed"),
-                        "obsolete confirmation control still visible: {screen}"
+                        !screen.contains("Hypridle integration confirmed")
+                            && !screen.contains("Reload"),
+                        "obsolete manual setup/reload control still visible: {screen}"
                     );
                     assert!(
                         screen.contains(label),

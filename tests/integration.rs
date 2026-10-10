@@ -470,6 +470,73 @@ async fn minimized_live_capture_replays_through_controller_and_private_status() 
             .unwrap()
             > 0
     );
+    // File edits must apply without a control command, a popup or a Herdr event.
+    let instance = status["monitor"]["instance_id"].clone();
+    config.paused = true;
+    config.release_delay_secs = 7;
+    std::fs::write(&paths.config, toml::to_string(&config).unwrap()).unwrap();
+    let paused = wait_status(&paths.endpoint, |v| {
+        v["control"]["paused"] == true && v["inhibition"]["resource_owned"] == false
+    })
+    .await;
+    assert_eq!(paused["monitor"]["instance_id"], instance);
+    assert_eq!(fake.acquires.load(Ordering::SeqCst), 1);
+    assert_eq!(fake.releases.load(Ordering::SeqCst), 1);
+    assert_eq!(paused["observation"]["working_agents_observed"], expected);
+
+    let invalid = "release_delay_secs = 999\n";
+    std::fs::write(&paths.config, invalid).unwrap();
+    wait_status(&paths.endpoint, |v| {
+        v["diagnostics"]["issues"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|i| i["code"] == "config_write_or_reload_failed")
+    })
+    .await;
+    let details = ipc::query(&paths.endpoint, Operation::GetStatus { details: true })
+        .await
+        .unwrap()
+        .details
+        .unwrap();
+    assert!(details.config.paused);
+    assert_eq!(details.config.release_delay_secs, 7);
+    assert_eq!(std::fs::read_to_string(&paths.config).unwrap(), invalid);
+    assert_eq!(fake.acquires.load(Ordering::SeqCst), 1);
+    assert_eq!(fake.releases.load(Ordering::SeqCst), 1);
+
+    std::fs::remove_file(&paths.config).unwrap();
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(8);
+    while !paths.config.exists() {
+        assert!(
+            tokio::time::Instant::now() < deadline,
+            "config was not recreated"
+        );
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    let restored = herdr_idle_inhibitor::runtime::config::Config::parse(
+        &std::fs::read_to_string(&paths.config).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        restored, config,
+        "deletion must not reset Pause or preferences"
+    );
+
+    // Editors that save via rename must also be detected.
+    config.paused = false;
+    config.release_delay_secs = 0;
+    let replacement = tempfile::NamedTempFile::new_in(dir.path()).unwrap();
+    std::fs::write(replacement.path(), toml::to_string(&config).unwrap()).unwrap();
+    replacement.persist(&paths.config).unwrap();
+    let resumed = wait_status(&paths.endpoint, |v| {
+        v["control"]["paused"] == false && v["inhibition"]["resource_owned"] == true
+    })
+    .await;
+    assert_eq!(resumed["monitor"]["instance_id"], instance);
+    assert_eq!(fake.acquires.load(Ordering::SeqCst), 2);
+    assert_eq!(fake.releases.load(Ordering::SeqCst), 1);
+
     // Recorded input above; completion below is an explicitly synthetic mutation.
     working.store(false, Ordering::SeqCst);
     ipc::query(
@@ -482,7 +549,7 @@ async fn minimized_live_capture_replays_through_controller_and_private_status() 
         v["observation"]["work"] == "none" && v["inhibition"]["resource_owned"] == false
     })
     .await;
-    assert_eq!(fake.releases.load(Ordering::SeqCst), 1);
+    assert_eq!(fake.releases.load(Ordering::SeqCst), 2);
     assert!(
         done["diagnostics"]["counters"]["snapshot_valid"]
             .as_u64()

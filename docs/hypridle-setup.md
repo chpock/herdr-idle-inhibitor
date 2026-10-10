@@ -14,7 +14,7 @@ This optional guide is for [Linux display-off troubleshooting](troubleshooting.m
 4. For idle-suspend/hibernate listeners, leave `ignore_inhibit` false (its default) or set it explicitly to false. Do not add a suspend command where none exists.
 5. Keep each existing timeout, command and resume action unchanged. If one listener mixes display-off/locking with suspend, separate its policy intentionally before applying the override; do not indiscriminately allow the mixed action to ignore inhibition.
 6. Apply the configuration using your own normal Hypridle/service workflow. This plugin does not perform reloads or restarts for you.
-No plugin setting, Reload or confirmation is needed afterwards. Existing `hypridle_integration_confirmed` values in old plugin configuration files are accepted but ignored; they no longer control acquisition.
+No plugin setting or confirmation is needed afterwards. Existing `hypridle_integration_confirmed` values in old plugin configuration files are accepted but ignored; they no longer control acquisition.
 
 ### Illustrative existing-listener edits
 

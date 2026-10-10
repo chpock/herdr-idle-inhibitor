@@ -366,7 +366,10 @@ impl Controller {
         if !self.config.valid {
             issues.push(Issue::new(
                 "invalid_config",
-                "Correct the configuration and use Reload",
+                &crate::status::sanitized(&format!(
+                    "Correct the configuration; changes load automatically. {}",
+                    self.config.error.as_deref().unwrap_or("")
+                )),
             ));
         }
         if !self.config.pause_persisted {
@@ -375,10 +378,12 @@ impl Controller {
                 "Pause is active but could not be saved; restart may restore the previous setting",
             ));
         }
-        if self.config.error.is_some() && self.config.valid && self.config.pause_persisted {
+        if let Some(error) = &self.config.error
+            && self.config.valid
+        {
             issues.push(Issue::new(
                 "config_write_or_reload_failed",
-                "Configuration operation failed; inspect Settings and reload external edits",
+                &crate::status::sanitized(&format!("Configuration: {error}")),
             ));
         }
         if self.conflict {
@@ -1186,6 +1191,20 @@ impl Controller {
             self.native_busy = true;
         }
     }
+    fn tick(
+        &mut self,
+        now: u64,
+        tx: &mpsc::Sender<ResultEvent>,
+        native: &mpsc::Sender<NativeCommand>,
+    ) -> bool {
+        self.observe_gap(now);
+        self.last_tick = now;
+        let _ = self.config.poll(now);
+        self.check_update(now, tx);
+        self.schedule(now, tx);
+        self.evaluate(now, native);
+        self.retire_and_exit(now)
+    }
     fn retire_and_exit(&mut self, now: u64) -> bool {
         let complete = self.coverage(now);
         let relevant: BTreeSet<_> = self
@@ -1307,7 +1326,7 @@ pub async fn serve_with_handoff(
             Some(message)=incoming_rx.recv()=>{c.control(message,clock::now_ms(),&native);if c.stop_for_update {break;}},
             Some(result)=results.recv()=>{c.result(result,clock::now_ms());c.evaluate(clock::now_ms(),&native);},
             Some(event)=power.recv()=>{c.power_event(event,clock::now_ms(),&native);},
-            _=tick.tick()=>{let now=clock::now_ms();c.observe_gap(now);c.last_tick=now;c.check_update(now,&result_tx);c.schedule(now,&result_tx);c.evaluate(now,&native);if c.retire_and_exit(now) {break;}},
+            _=tick.tick()=>{if c.tick(clock::now_ms(),&result_tx,&native) {break;}},
         }
     }
     c.logger.transition("monitor_stopping");
@@ -1414,6 +1433,131 @@ mod tests {
                 .iter()
                 .any(|v| v.endpoint == discovered && v.root_key() == key)
         );
+    }
+    #[tokio::test]
+    async fn startup_and_auto_reload_errors_never_publish_config_paths_or_source_lines() {
+        let dir = fixtures::tempdir();
+        let path = dir.path().join("config.toml");
+        let secret = "/home/alice/private-agent.sock";
+        std::fs::write(
+            &path,
+            format!("additional_endpoints = ['{secret}'] trailing\n"),
+        )
+        .unwrap();
+        let mut c = controller(dir.path());
+        let startup = serde_json::to_string(&c.status(0)).unwrap();
+        assert!(
+            !startup.contains(secret),
+            "startup leaked file contents: {startup}"
+        );
+        assert!(
+            startup.contains("line 1"),
+            "safe error location missing: {startup}"
+        );
+        std::fs::write(&path, "release_delay_secs = 7\n").unwrap();
+        c.config.poll(0).unwrap();
+        assert!(c.config.valid);
+        for (index, text) in [
+            format!("additional_endpoints = ['{secret}'] trailing\n"),
+            format!("release_delay_secs = '{secret}'\n"),
+            format!("'{secret}' = true\n"),
+        ]
+        .iter()
+        .enumerate()
+        {
+            std::fs::write(&path, text).unwrap();
+            assert!(c.config.poll((index as u64 + 1) * 2000).is_err());
+            let status = serde_json::to_string(&c.status(1)).unwrap();
+            assert!(
+                !status.contains(secret),
+                "reload leaked file contents: {status}"
+            );
+            assert!(
+                !status.contains("additional_endpoints ="),
+                "raw TOML leaked: {status}"
+            );
+            assert!(
+                status.contains("line 1"),
+                "safe error location missing: {status}"
+            );
+            crate::status::Status::from_wire(serde_json::from_str(&status).unwrap()).unwrap();
+            assert_eq!(c.config.config.release_delay_secs, 7);
+        }
+    }
+    #[tokio::test]
+    async fn config_timer_recovers_invalid_startup_and_queries_never_touch_the_file() {
+        let dir = fixtures::tempdir();
+        let path = dir.path().join("config.toml");
+        std::fs::write(&path, "release_delay_secs = 99").unwrap();
+        let mut c = controller(dir.path());
+        assert!(!c.config.valid);
+        std::fs::write(
+            &path,
+            "paused = true\nrelease_delay_secs = 7\n[linux]\nbackend = 'kde'\n",
+        )
+        .unwrap();
+        let initial = c.config.io;
+        let (native, _) = mpsc::channel(8);
+        for now in [0, 5000] {
+            let (reply, rx) = tokio::sync::oneshot::channel();
+            c.control(
+                Incoming {
+                    request: ipc::Request {
+                        protocol_version: 1,
+                        request_id: "pure".into(),
+                        operation: Operation::GetStatus { details: true },
+                    },
+                    reply,
+                },
+                now,
+                &native,
+            );
+            let reply = rx.await.unwrap();
+            assert!(!reply.details.unwrap().config.paused);
+            assert_eq!(c.config.io, initial, "status query performed config I/O");
+        }
+        let (results, _) = mpsc::channel(8);
+        c.tick(100, &results, &native);
+        assert!(c.config.valid);
+        assert!(c.config.config.paused);
+        assert_eq!(c.config.config.release_delay_secs, 7);
+        #[cfg(target_os = "linux")]
+        assert_eq!(c.selected, Some(Kind::Kde));
+        assert_eq!(c.config.io.reads, initial.reads + 1);
+        assert_eq!(c.config.io.parses, initial.parses + 1);
+        assert!(
+            !c.status(100)
+                .diagnostics
+                .unwrap()
+                .issues
+                .iter()
+                .any(|i| i.code == "invalid_config")
+        );
+        std::fs::remove_file(&path).unwrap();
+        let loaded = c.config.io;
+        let (reply, rx) = tokio::sync::oneshot::channel();
+        c.control(
+            Incoming {
+                request: ipc::Request {
+                    protocol_version: 1,
+                    request_id: "pure-missing".into(),
+                    operation: Operation::GetStatus { details: false },
+                },
+                reply,
+            },
+            10_000,
+            &native,
+        );
+        rx.await.unwrap();
+        assert!(!path.exists(), "query recreated the config file");
+        assert_eq!(c.config.io, loaded);
+        c.tick(2100, &results, &native);
+        assert_eq!(
+            crate::runtime::config::Config::parse(&std::fs::read_to_string(&path).unwrap())
+                .unwrap(),
+            c.config.config
+        );
+        assert_eq!(c.config.io.writes, loaded.writes + 1);
     }
     #[tokio::test]
     async fn failed_config_operations_remain_in_shared_status_until_successful_reload() {

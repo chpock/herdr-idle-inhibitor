@@ -71,7 +71,7 @@ Open the same popup command whenever you want to inspect work or change settings
 
 Use **Pause / Resume** for temporary stops, rather than disabling and re-enabling the plugin. **Pause** releases this plugin's sleep-prevention request but keeps observing agents. It applies to all monitored sessions and is saved across restarts and updates. It has no timeout: press `p` again or choose **Resume** when you want protection back. If **PAUSE NOT SAVED** appears, the live Pause applies but could be lost on restart; see [configuration errors](docs/troubleshooting.md#configuration-failures).
 
-In **Settings**, you can change the release delay, Pause, and Linux desktop selection. Focus **Release delay** and use Left / Right to choose 0–60 seconds. Changes take effect and are saved immediately when acknowledged; there is no separate Save button. Most users can keep the defaults. File locations, manual edits and extra endpoints are in [Configuration](docs/configuration.md).
+In **Settings**, you can change the release delay, Pause, and Linux desktop selection. Focus **Release delay** and use Left / Right to choose 0–60 seconds. Changes take effect and are saved immediately when acknowledged; there is no separate Save button. Most users can keep the defaults. Manual TOML edits also load automatically; the monitor checks for changes every two seconds. File locations and extra endpoints are in [Configuration](docs/configuration.md).
 
 The popup needs at least **50 columns × 10 rows**. In Details, use Up / Down or PageUp / PageDown to scroll.
 

@@ -48,13 +48,13 @@ Do not delete locks or terminate a PID copied from status. [How it works](behavi
 
 | Diagnostic / symptom | Action |
 | --- | --- |
-| `invalid_config` | Correct TOML/schema/types/ranges, then Reload or stop/reactivate; new acquisition is disabled |
-| `config_write_or_reload_failed` | Inspect permissions and external edits; the last valid runtime settings remain in use |
+| `invalid_config` | Correct TOML keys/types/ranges and save; changes load automatically, and new acquisition stays disabled until the startup error is corrected |
+| `config_write_or_reload_failed` | Read the reported configuration error in Details / JSON diagnostics; fix invalid edits or filesystem permissions. The last valid runtime settings remain in use |
 | `pause_not_persisted` / **PAUSE NOT SAVED** | Pause is live but restart can restore the old file; repair saving before relying on persistence |
-| `config changed externally` | Reload your manual edits before saving from the popup |
+| `config changed externally` | Wait for automatic loading, then retry the popup change; correct invalid edits first |
 | Resume fails | Fix saving first; failed persistence does not enable new acquisition |
 
-There is no automatic file watcher. See [editing rules](configuration.md#editing-and-persistence); status queries do not Reload. If Settings is unavailable, follow the [manual editing procedure](configuration.md#editing-and-persistence) to load changes on the monitor's next start.
+The running monitor checks configuration metadata every two seconds and loads changes automatically, without opening Settings, restarting or waiting for an agent event. Invalid files are left intact; a deleted file is recreated with the current settings, including Pause. Read-only status queries do not trigger these checks. See [editing rules](configuration.md#editing-and-persistence), including how an unsaved Pause is preserved.
 
 ## Linux setup or backend failure
 

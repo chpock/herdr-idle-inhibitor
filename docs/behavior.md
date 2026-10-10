@@ -58,6 +58,7 @@ Windows power policy and Modern Standby on battery can defeat an ordinary reques
 | Agent snapshots | Every two seconds, plus coalesced event-triggered refreshes |
 | Server discovery and plugin enabled-state checks | Every five seconds |
 | Installed-executable update checks | Every five seconds while an eligible installation is tracked |
+| Configuration metadata checks | Every two seconds; read/parse only when changed; recreate a missing file |
 | Agent observation freshness | Six seconds; explicit read failure marks uncertainty immediately |
 | Discovery/enabled-state freshness | Ten seconds |
 | Normal release delay | Five seconds by default; configurable 0–60 seconds |
@@ -74,7 +75,7 @@ Herdr does not supervise a crashed detached monitor. A later server startup or m
 
 ## User interface and read-only consumers
 
-The `show` action opens the Status and Settings window. The interface displays monitor state and provides controls for Pause, preferences and diagnostics. Its periodic refresh reads snapshots from the monitor; configuration changes are applied only through explicit user controls.
+The `show` action opens the Status and Settings window. The interface displays monitor state and provides controls for Pause, preferences and diagnostics. Its periodic refresh reads snapshots from the monitor. Explicit settings controls apply changes immediately; manual TOML edits load automatically in the monitor's configuration checks.
 
 A standalone `status --json` query also never starts monitoring, registers a session, reloads settings, or acquires/releases a request. It reads the existing monitor and returns unavailable/unknown when no compatible monitor answers. Public consumers poll; there is no watch stream, management API, HTTP endpoint, remote selector or command callback. An external program owns its own actions and must not treat uncertainty as permission to sleep. See [Status API](status-api.md).
 
