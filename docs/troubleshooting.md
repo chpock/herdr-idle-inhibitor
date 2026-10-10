@@ -57,7 +57,6 @@ There is no automatic file watcher. See [editing rules](configuration.md#editing
 
 ## Linux setup or backend failure
 
-- **`setup_required`:** complete [Hypridle setup](hypridle-setup.md), then acknowledge it. Merely setting the acknowledgment without listener changes can keep display/lock timers from behaving as intended.
 - **`unsupported_profile`:** check [supported exact versions](compatibility.md#platforms), desktop context and selected backend. An explicit selection cannot bypass the version guard.
 - **`backend_unavailable` / native failure:** check that the required logind/session-bus/desktop service is running and accessible to your normal user. Do not use sudo or substitute a broader sleep lock.
 - **`desktop_context_conflict`:** registrations belong to different desktop/bus contexts. One active desktop session is supported; multiple Herdr servers within it are fine.
@@ -65,6 +64,20 @@ There is no automatic file watcher. See [editing rules](configuration.md#editing
 - **KDE `suppressed`:** the user disabled that request through KDE. Allow it intentionally if wanted; the plugin does not override suppression.
 
 On Hyprland, `systemd-inhibit --list` should show `herdr-idle-inhibitor`, reason `Herdr agents are working`, and **idle / block** while its request is held. The application does not invoke that diagnostic command itself. Do not confuse another application's inhibitor with this one.
+
+## Linux screen does not turn off
+
+On Hyprland with Hypridle, this plugin's logind idle inhibitor can also delay screen dimming, display-off or automatic locking while agents work. Hypridle normally applies inhibitors to those listeners as well as to idle-sleep listeners. This is not a plugin error, and display tuning is **not required** to use sleep prevention. There is no confirmation checkbox to enable protection.
+
+If you want display-off and locking to continue during agent work:
+
+1. Inspect your existing Hypridle configuration. For each listener that only dims, turns off the display or locks the session, add `ignore_inhibit = true` while preserving its timeout and commands.
+2. Keep `ignore_inhibit = false` (the default) for listeners that suspend or hibernate. If a listener combines display/locking with sleep, split those actions before allowing either to ignore inhibition.
+3. Keep `ignore_systemd_inhibit = false` in `general` so Hypridle still honors the sleep-prevention request. Apply changes using your usual Hypridle/service workflow; the plugin does not edit or reload that configuration.
+
+Per-listener `ignore_inhibit = true` ignores **all** inhibitors for that listener, including those from media players and other applications. The [optional Hypridle guide](hypridle-setup.md) shows edits to existing listeners and checks. No plugin setting or acknowledgment is needed afterwards.
+
+If you use GNOME/KDE, or the screen stays on even when this plugin is paused, inspect desktop display settings and other applications' inhibitors. Do not change a sleep listener to ignore inhibition just to fix display-off.
 
 ## Missing or unknown work
 
@@ -76,7 +89,7 @@ An incomplete non-null working count is a **lower bound**, not the exact machine
 
 ## Computer still sleeps, or stays awake after work
 
-Native acknowledgment is not an awake guarantee. Check the [Windows battery limitation](compatibility.md#windows-modern-standby-on-battery), power policy and selected Linux profile. Display-off and locking are intentionally allowed and are not themselves host sleep.
+Native acknowledgment is not an awake guarantee. Check the [Windows battery limitation](compatibility.md#windows-modern-standby-on-battery), power policy and selected Linux profile. The plugin does not explicitly request display/lock inhibition; desktop idle handling can still couple those actions to sleep prevention as described [above](#linux-screen-does-not-turn-off). Display-off and locking are not themselves host sleep.
 
 After work, normal release grace defaults to five seconds. Lost observation can temporarily retain an already justified request. Even after this plugin releases, another application or the desktop's existing idle policy may keep the system awake. The plugin does not force suspend or guarantee immediate sleep.
 

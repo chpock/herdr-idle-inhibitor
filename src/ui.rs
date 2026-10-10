@@ -43,7 +43,7 @@ fn rows(view: View) -> usize {
         View::Main => 4,
         View::Settings => {
             if cfg!(target_os = "linux") {
-                6
+                5
             } else {
                 4
             }
@@ -81,7 +81,7 @@ pub fn draw(
     .split(area);
     f.render_widget(
         Paragraph::new(
-            "Idle Inhibitor — idle sleep only\nDisplay-off, lock and manual sleep allowed",
+            "Idle Inhibitor — idle sleep only\nDisplay/lock follow desktop policy; manual sleep OK",
         ),
         chunks[0],
     );
@@ -206,21 +206,14 @@ pub fn draw(
                         2,
                         format!("Linux backend: {} (Enter cycles)", c.linux.backend),
                     );
-                    action(
-                        3,
-                        format!(
-                            "Hypridle integration confirmed: {}",
-                            c.linux.hypridle_integration_confirmed
-                        ),
-                    );
-                    action(4, "Reload TOML settings".into());
-                    action(5, "Back".into());
+                    action(3, "Reload TOML settings".into());
+                    action(4, "Back".into());
                 } else {
                     action(2, "Reload TOML settings".into());
                     action(3, "Back".into());
                 }
                 if cfg!(target_os = "linux") {
-                    lines.push(Line::from("Hypridle: ignore_systemd_inhibit=false; set ignore_inhibit=true only for dim/off/lock listeners, not idle-suspend. This override ignores all inhibitors. Confirm only after applying docs/hypridle-setup.md."));
+                    lines.push(Line::from("Hypridle may also delay display-off/locking. Optional listener tuning: docs/troubleshooting.md."));
                 }
                 lines.push(Line::from(
                     "Advanced local endpoints: edit TOML, then Reload.",
@@ -485,22 +478,12 @@ pub async fn run() -> anyhow::Result<()> {
                                 });
                             }
                             3 if cfg!(target_os = "linux") => {
-                                operation = Some(Operation::ApplySettings {
-                                    patch: SettingsPatch {
-                                        hypridle_integration_confirmed: Some(
-                                            !d.config.linux.hypridle_integration_confirmed,
-                                        ),
-                                        ..Default::default()
-                                    },
-                                })
-                            }
-                            4 if cfg!(target_os = "linux") => {
                                 operation = Some(Operation::ReloadSettings)
                             }
                             2 if !cfg!(target_os = "linux") => {
                                 operation = Some(Operation::ReloadSettings)
                             }
-                            5 | 3 if !cfg!(target_os = "linux") || focus == 5 => {
+                            4 | 3 if !cfg!(target_os = "linux") || focus == 4 => {
                                 view = View::Main;
                                 focus = 0;
                             }

@@ -12,7 +12,7 @@ Run as the current user on the native host, with one active OS desktop session a
 
 | Platform | Architecture/profile | Native request |
 | --- | --- | --- |
-| Linux GNU | x86_64; Hyprland with Hypridle **0.1.8** | logind `idle / block`; [listener setup required](hypridle-setup.md) |
+| Linux GNU | x86_64; Hyprland with Hypridle **0.1.8** | logind `idle / block`; optional [display/lock tuning](hypridle-setup.md) |
 | Linux GNU | x86_64; GNOME session **51.0** | SessionManager suspend flag `4`, without idle/display flag `8` |
 | Linux GNU | x86_64; PowerDevil **6.7.5** | PolicyAgent `InterruptSession = 1`, without screen policy |
 | macOS | Apple Silicon / Intel; deployment target **13.0** | IOKit `PreventUserIdleSystemSleep` |
@@ -28,7 +28,7 @@ Automatic-update process tests currently run on Linux. The new Windows replaceme
 
 ## What a native request means
 
-The plugin requests only automatic idle-sleep prevention. It does not keep the display on, intercept lid/manual sleep, emit input, force suspend when work ends, alter a power plan or install a privileged service.
+The plugin requests only automatic idle-sleep prevention. It does not explicitly request that the display stay on, intercept lid/manual sleep, emit input, force suspend when work ends, alter a power plan or install a privileged service. Hypridle can also delay display-off/locking in response to an idle inhibitor; [optional listener tuning](troubleshooting.md#linux-screen-does-not-turn-off) separates those actions without blocking use of the plugin.
 
 `resource_owned` and `request_state = accepted` are not an unconditional awake guarantee. The OS can honor safety policy, user actions or independent power settings. Unknown/setup/error/suppressed states are visible rather than hidden by a stronger fallback.
 

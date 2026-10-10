@@ -80,10 +80,6 @@ pub fn select(c: &Config, desktop: &str) -> Result<Kind, Issue> {
             &c.linux.backend
         };
         match selected {
-            "hypridle" if !c.linux.hypridle_integration_confirmed => Err(Issue::new(
-                "setup_required",
-                "Configure Hypridle display/lock listeners to ignore inhibitors, then confirm integration in Settings",
-            )),
             "hypridle" => Ok(Kind::Hypridle),
             "gnome" => Ok(Kind::Gnome),
             "kde" => Ok(Kind::Kde),

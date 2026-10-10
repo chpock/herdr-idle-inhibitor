@@ -14,6 +14,8 @@ pub struct Config {
 #[serde(default, deny_unknown_fields)]
 pub struct Linux {
     pub backend: String,
+    /// Read old configuration files without requiring a migration. No runtime effect.
+    #[serde(skip_serializing)]
     pub hypridle_integration_confirmed: bool,
 }
 impl Default for Linux {

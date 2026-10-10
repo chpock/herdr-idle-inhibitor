@@ -4,7 +4,7 @@
 
 For the usual GitHub install, first use, updates and removal, follow the [README](../README.md#get-started). This guide is for binary bundles, revision selection, and installations registered with `herdr plugin link`. To work on the source itself, use [Development](development.md).
 
-All installation methods require Herdr **0.9.3** and a [supported native desktop/OS](compatibility.md). Run as your normal user, without sudo or an administrator service. Installing a different way does not bypass version checks, power-policy limitations or [Hypridle setup](hypridle-setup.md).
+All installation methods require Herdr **0.9.3** and a [supported native desktop/OS](compatibility.md). Run as your normal user, without sudo or an administrator service. Installing a different way does not bypass version checks or power-policy limitations. [Hypridle display tuning](hypridle-setup.md) is optional, regardless of the installation method.
 
 ## Install a binary bundle
 

@@ -1,10 +1,10 @@
 # Herdr Idle Inhibitor
 
-Keep long-running Herdr agent work from being interrupted by automatic idle sleep, without keeping your display on.
+Keep long-running Herdr agent work from being interrupted by automatic idle sleep.
 
 The plugin watches the agent states reported by your local Herdr sessions. While at least one agent reports `working`, it asks the operating system to hold off idle sleep. When the last agent stops working, it releases that request after five seconds by default. The computer then follows its normal sleep policy; the plugin never sends it to sleep itself.
 
-- Your display can turn off and your desktop can lock normally.
+- Only idle sleep is targeted; display-off and locking remain controlled by your desktop.
 - Closing the lid and choosing Sleep manually remain under OS/user control.
 - `blocked`, `idle` and `done` do not count as working. Waiting for input is not active work.
 - Monitoring runs in the background across registered local Herdr sessions for your OS user, regardless of which pane or workspace is focused.
@@ -42,8 +42,6 @@ herdr plugin action invoke show --plugin herdr-idle-inhibitor
 
 This activates monitoring and opens the **Idle Inhibitor** popup on **Status**. Press `s` for **Settings**. Closing the popup with `Esc` does **not** stop monitoring.
 
-**On Hyprland:** complete [Hypridle setup](docs/hypridle-setup.md), then turn on **Hypridle integration confirmed** in Settings. Until you do, the plugin reports `setup_required` and does not prevent idle sleep. This setup keeps display-off and locking independent of sleep prevention.
-
 ### 3. Check it while an agent works
 
 Start an agent task that Herdr reports as `working`. In the popup, check:
@@ -71,7 +69,7 @@ Open the same popup command whenever you want to inspect work or change settings
 
 **Pause** releases this plugin's sleep-prevention request but keeps observing agents. It applies to all monitored sessions and is saved across restarts and updates. It has no timeout: press `p` again or choose **Resume** when you want protection back. Closing/reopening the popup does not Resume. If **PAUSE NOT SAVED** appears, the live Pause applies but could be lost on restart; see [configuration errors](docs/troubleshooting.md#configuration-failures).
 
-In **Settings**, you can change the release delay, Pause, and Linux desktop selection. Focus **Release delay** and use Left / Right to choose 0–60 seconds. Changes take effect and are saved immediately when acknowledged; there is no separate Save button. Most users can keep the defaults, except for the required Hypridle confirmation. File locations, manual edits and extra endpoints are in [Configuration](docs/configuration.md).
+In **Settings**, you can change the release delay, Pause, and Linux desktop selection. Focus **Release delay** and use Left / Right to choose 0–60 seconds. Changes take effect and are saved immediately when acknowledged; there is no separate Save button. Most users can keep the defaults. File locations, manual edits and extra endpoints are in [Configuration](docs/configuration.md).
 
 The popup needs at least **50 columns × 10 rows**. In Details, use Up / Down or PageUp / PageDown to scroll.
 
@@ -116,6 +114,7 @@ Settings and logs remain in the [application data directories](docs/configuratio
 
 ## Important limits
 
+- On Hyprland with Hypridle, sleep prevention may also delay display-off or automatic locking. This is not a blocker; optional adjustments are in [Troubleshooting](docs/troubleshooting.md#linux-screen-does-not-turn-off).
 - Only Herdr's reported `working` state counts, not CPU activity, terminal output or arbitrary remote/background tasks. Other users and remote-host power control are outside the scope.
 - Lost observations mean **unknown**, not that all work finished. An existing justified request can be retained briefly, but errors do not keep the computer awake indefinitely. See [How it works](docs/behavior.md).
 - Native acceptance is not a guarantee against every OS policy. In particular, **Windows Modern Standby on battery can still sleep** despite a request.
@@ -129,7 +128,7 @@ Linux is the only workstation-tested platform. Native hosted checks have also ex
 | Guide | Read it when you want to… |
 | --- | --- |
 | [Configuration](docs/configuration.md) | Find/edit settings, select a Linux desktop mechanism, or add custom local endpoints |
-| [Hypridle setup](docs/hypridle-setup.md) | Configure Hyprland so idle sleep is held back but display-off and locking still work |
+| [Hypridle display tuning](docs/hypridle-setup.md) | Optionally keep display-off and locking independent of sleep prevention on Hyprland |
 | [How it works](docs/behavior.md) | Understand observation, timing, shared monitoring, recovery and automatic updates |
 | [Compatibility](docs/compatibility.md) | Check exact platform support, OS mechanisms, testing coverage and known limitations |
 | [Troubleshooting](docs/troubleshooting.md) | Diagnose setup, work detection, updates and native request failures |

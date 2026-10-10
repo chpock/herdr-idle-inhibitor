@@ -529,9 +529,6 @@ impl Controller {
                 if let Some(v) = patch.linux_backend {
                     c.linux.backend = v;
                 }
-                if let Some(v) = patch.hypridle_integration_confirmed {
-                    c.linux.hypridle_integration_confirmed = v;
-                }
                 self.config.apply(c)
             }
             Operation::ReloadSettings => self.config.reload(),
@@ -1507,7 +1504,6 @@ mod tests {
         let dir = fixtures::tempdir();
         let mut c = controller(dir.path());
         c.config.config.linux.backend = "hypridle".into();
-        c.config.config.linux.hypridle_integration_confirmed = true;
         let registration = registration(dir.path(), "a.sock");
         let endpoint = registration.endpoint.clone();
         let key = registration.root_key();
@@ -1811,7 +1807,6 @@ mod native_tests {
         c.last_tick = 0;
         c.desktop = "Hyprland".into();
         c.config.config.linux.backend = "hypridle".into();
-        c.config.config.linux.hypridle_integration_confirmed = true;
         let r = Registration {
             endpoint: dir.path().join("a.sock").to_string_lossy().into_owned(),
             herdr_bin: std::env::current_exe().unwrap(),

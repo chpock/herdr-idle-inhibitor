@@ -43,6 +43,8 @@ pub enum Operation {
 pub struct SettingsPatch {
     pub release_delay_secs: Option<u64>,
     pub linux_backend: Option<String>,
+    /// Accept an older popup's confirmation field as a no-op; new clients omit it.
+    #[serde(skip_serializing)]
     pub hypridle_integration_confirmed: Option<bool>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]

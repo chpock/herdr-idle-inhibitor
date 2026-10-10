@@ -131,7 +131,7 @@ Examples of valid distinctions:
 
 `diagnostics` contains:
 
-- `issues`: an array of issues, for example `discovery_failed`, `snapshot_stale`, `invalid_config`, `setup_required`, `unsupported_profile`, `backend_unavailable`, `desktop_suppressed`, `pause_not_persisted`.
+- `issues`: an array of issues, for example `discovery_failed`, `snapshot_stale`, `invalid_config`, `unsupported_profile`, `backend_unavailable`, `desktop_suppressed`, `pause_not_persisted`.
 - `known_limitations`: an array of static conditional identifiers. Windows includes `windows_modern_standby_battery`; the selected KDE adapter includes `kde_powerdevil_suppressed_owner_cleanup`. These describe [platform limitations](compatibility.md), **not** detection of the current power source, hardware model or an orphaned request. Other adapters currently use an empty list; consumers allow unknown additive identifiers.
 - `counters`: nonnegative per-instance integers for `status_reads`, `discovery_attempts`, `discovery_failures`, `snapshot_initial`, `snapshot_poll`, `snapshot_hook`, `snapshot_resume`, `snapshot_valid`, `snapshot_failed`, `old_results_ignored`, `hints_received`, `hints_coalesced`, `native_acquires`, `native_releases`, `native_failures`, `backend_losses`. Additions are allowed; counters reset with `instance_id`.
 

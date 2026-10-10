@@ -1,18 +1,20 @@
-# Hyprland / Hypridle setup
+# Optional Hyprland / Hypridle display tuning
 
 [Home](../README.md) · [Configuration](configuration.md) · [Compatibility](compatibility.md)
 
-The supported version is **Hypridle 0.1.8**. The application uses logind `Inhibit("idle", ..., "block")`, not a strong `sleep` lock. Hypridle must honor that request for idle suspend while deliberately allowing its display/lock listeners to ignore inhibitors. The application never rewrites this file or restarts desktop services.
+The supported version is **Hypridle 0.1.8**. The application uses logind `Inhibit("idle", ..., "block")`, not a strong `sleep` lock. No display-listener setup or confirmation is required to enable the plugin. By default, Hypridle can honor the same idle request for both sleep and display/lock actions, so the screen may stay on while agents work.
 
-## Configuration steps
+This optional guide is for [Linux display-off troubleshooting](troubleshooting.md#linux-screen-does-not-turn-off): use it if you want display-off/locking to continue while idle sleep is inhibited. The application never rewrites this file or restarts desktop services.
+
+## Optional configuration steps
 
 1. Run `hypridle --version` and inspect your existing Hypridle configuration.
 2. In the existing `general` block, ensure `ignore_systemd_inhibit = false`. Do not change the existing lock, suspend, resume, or other commands.
 3. Identify **every** listener that dims the screen, powers the display off, or locks the session. Add `ignore_inhibit = true` to these listeners only.
 4. For idle-suspend/hibernate listeners, leave `ignore_inhibit` false (its default) or set it explicitly to false. Do not add a suspend command where none exists.
-5. Keep each existing timeout, command and resume action unchanged. If one listener mixes display-off/locking with suspend, separate its policy intentionally before confirming; do not indiscriminately allow the mixed action to ignore inhibition.
+5. Keep each existing timeout, command and resume action unchanged. If one listener mixes display-off/locking with suspend, separate its policy intentionally before applying the override; do not indiscriminately allow the mixed action to ignore inhibition.
 6. Apply the configuration using your own normal Hypridle/service workflow. This plugin does not perform reloads or restarts for you.
-7. [Open the popup](../README.md#2-open-status-and-settings), press `s` for Settings, focus **Hypridle integration confirmed**, and press Enter to turn it on. Alternatively, set `hypridle_integration_confirmed = true` in the configuration's `[linux]` section and load it using **Reload** or at monitor startup as described in [Configuration](configuration.md#editing-and-persistence). Confirm only after the listener changes: this is an acknowledgment, not automatic detection or proof of correct configuration. Until confirmed the plugin refuses native acquisition with `setup_required`.
+No plugin setting, Reload or confirmation is needed afterwards. Existing `hypridle_integration_confirmed` values in old plugin configuration files are accepted but ignored; they no longer control acquisition.
 
 ### Illustrative existing-listener edits
 
@@ -47,15 +49,15 @@ listener {
 }
 ```
 
-**Important:** per-listener `ignore_inhibit = true` ignores **all inhibitors for that listener**, not only this plugin. Consider the effect on media players and other applications. This is the documented integration trade-off needed to preserve display-off/locking with this logind idle mechanism.
+**Important:** per-listener `ignore_inhibit = true` ignores **all inhibitors for that listener**, not only this plugin. Consider the effect on media players and other applications. This is an optional display-policy trade-off, not a prerequisite for preventing idle sleep.
 
-## Checking your setup
+## Checking the optional changes
 
 While a locally observed Herdr agent is working:
 
 - Inspect `status --json` (or the popup when available) for `working` evidence, desired inhibition, resource ownership, and native request state. `accepted` is not proof of every desktop configuration.
 - `systemd-inhibit --list` should show application `herdr-idle-inhibitor`, a fixed non-sensitive reason, and **idle / block**, not a strong sleep lock.
-- Display-off and session locking should still follow the configured listener behavior. Idle suspend should be held back.
+- After the optional listener changes, display-off and session locking should follow those listeners even while the idle request is held. Idle suspend should still honor the request.
 - Pause should remove this application's request without erasing working-agent observations. Resume should restore it only with current positive evidence.
 - When work ends, the application withdraws its request after the configured release delay; it does not issue `systemctl suspend` or any other suspend command. What happens next belongs to Hypridle's existing configuration.
 

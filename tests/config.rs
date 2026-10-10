@@ -80,3 +80,55 @@ fn rejected_reload_and_apply_are_retained_until_success_without_losing_valid_set
     store.apply(good).unwrap();
     assert!(store.error.is_none());
 }
+
+#[test]
+fn legacy_hypridle_confirmation_is_readable_but_not_written() {
+    for confirmation in [false, true] {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("config.toml");
+        let original = format!(
+            "schema_version = 1\npaused = true\nrelease_delay_secs = 7\n[linux]\nbackend = 'hypridle'\nhypridle_integration_confirmed = {confirmation}\n"
+        );
+        std::fs::write(&path, &original).unwrap();
+        let mut store = ConfigStore::open(path.clone());
+        assert!(store.valid, "legacy flag {confirmation} rejected");
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), original);
+        assert!(store.config.paused);
+        assert_eq!(store.config.release_delay_secs, 7);
+        assert_eq!(store.config.linux.backend, "hypridle");
+        store.set_paused(false).unwrap();
+        let saved = std::fs::read_to_string(&path).unwrap();
+        assert!(!saved.contains("hypridle_integration_confirmed"));
+        let reloaded = ConfigStore::open(path);
+        assert!(reloaded.valid);
+        assert!(!reloaded.config.paused);
+        assert_eq!(reloaded.config.release_delay_secs, 7);
+        assert_eq!(reloaded.config.linux.backend, "hypridle");
+    }
+    assert!(Config::parse("[linux]\nhypridle_integration_confirmed = 'true'").is_err());
+    assert!(Config::parse("[linux]\nhypridle_integration_confirmed_typo = true").is_err());
+}
+
+#[test]
+fn new_config_and_details_omit_obsolete_hypridle_confirmation() {
+    let config = Config::default();
+    assert!(
+        !toml::to_string(&config)
+            .unwrap()
+            .contains("hypridle_integration_confirmed")
+    );
+    assert!(
+        serde_json::to_value(&config).unwrap()["linux"]
+            .get("hypridle_integration_confirmed")
+            .is_none()
+    );
+    let patch: herdr_idle_inhibitor::runtime::ipc::SettingsPatch =
+        serde_json::from_value(serde_json::json!({"hypridle_integration_confirmed": true}))
+            .unwrap();
+    assert!(
+        serde_json::to_value(patch)
+            .unwrap()
+            .get("hypridle_integration_confirmed")
+            .is_none()
+    );
+}

@@ -378,7 +378,10 @@ mod tests {
             .request_name("org.freedesktop.login1")
             .await
             .unwrap();
-        let mut r = Resource::acquire_on(&Kind::Hypridle, bus.connect().await)
+        // First-run defaults must allow idle inhibition without listener confirmation.
+        let kind =
+            super::super::select(&crate::runtime::config::Config::default(), "Hyprland").unwrap();
+        let mut r = Resource::acquire_on(&kind, bus.connect().await)
             .await
             .unwrap();
         assert_eq!(

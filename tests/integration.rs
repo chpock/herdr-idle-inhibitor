@@ -179,7 +179,6 @@ async fn real_transport_controller_replay_two_servers_pause_and_read_counters() 
         ..Default::default()
     };
     config.linux.backend = "hypridle".into();
-    config.linux.hypridle_integration_confirmed = true;
     std::fs::write(&paths.config, toml::to_string(&config).unwrap()).unwrap();
     let task = tokio::spawn(herdr_idle_inhibitor::controller::serve_with(
         paths.clone(),
@@ -211,6 +210,48 @@ async fn real_transport_controller_replay_two_servers_pause_and_read_counters() 
     })
     .await;
     assert_eq!(fake.acquires.load(Ordering::SeqCst), 1);
+    // An already-open older popup may still send this retired setting.
+    for confirmation in [true, false] {
+        // Send raw old-client JSON: the new SettingsPatch serializer omits this key.
+        let reply = tokio::time::timeout(Duration::from_secs(2), async {
+            let name = herdr_idle_inhibitor::herdr::transport::local_name(&paths.endpoint).unwrap();
+            let mut stream = interprocess::local_socket::tokio::Stream::connect(name)
+                .await
+                .unwrap();
+            herdr_idle_inhibitor::herdr::transport::check_peer(&stream).unwrap();
+            let request_id = format!("legacy-confirmation-{confirmation}");
+            let mut frame = serde_json::to_vec(&serde_json::json!({
+                "protocol_version": 1,
+                "request_id": request_id,
+                "operation": {
+                    "type": "ApplySettings",
+                    "patch": {"hypridle_integration_confirmed": confirmation}
+                }
+            }))
+            .unwrap();
+            frame.push(b'\n');
+            stream.write_all(&frame).await.unwrap();
+            let bytes = read_frame(&mut tokio::io::BufReader::new(stream), 1024 * 1024)
+                .await
+                .unwrap()
+                .unwrap();
+            let reply: ipc::Reply = serde_json::from_slice(&bytes).unwrap();
+            assert_eq!(reply.protocol_version, 1);
+            assert_eq!(reply.request_id, request_id);
+            reply
+        })
+        .await
+        .unwrap();
+        assert!(reply.error.is_none());
+        assert_eq!(reply.status["inhibition"]["resource_owned"], true);
+        assert_eq!(fake.acquires.load(Ordering::SeqCst), 1);
+        assert_eq!(fake.releases.load(Ordering::SeqCst), 0);
+        assert!(
+            !std::fs::read_to_string(&paths.config)
+                .unwrap()
+                .contains("hypridle_integration_confirmed")
+        );
+    }
     let before = ipc::query(&paths.endpoint, Operation::GetStatus { details: false })
         .await
         .unwrap()
@@ -391,7 +432,6 @@ async fn minimized_live_capture_replays_through_controller_and_private_status() 
         ..Default::default()
     };
     config.linux.backend = "hypridle".into();
-    config.linux.hypridle_integration_confirmed = true;
     std::fs::write(&paths.config, toml::to_string(&config).unwrap()).unwrap();
     let owner = tokio::spawn(herdr_idle_inhibitor::controller::serve_with(
         paths.clone(),
@@ -541,7 +581,6 @@ async fn upgrade_releases_before_unlock_and_replays_all_roots_without_changing_s
         ..Default::default()
     };
     config.linux.backend = "hypridle".into();
-    config.linux.hypridle_integration_confirmed = true;
     std::fs::write(&paths.config, toml::to_string(&config).unwrap()).unwrap();
     let original = std::fs::read(&paths.config).unwrap();
     let fake = Fake {

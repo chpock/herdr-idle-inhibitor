@@ -73,7 +73,7 @@ fn every_supported_focus_is_visible_and_unsaved_pause_warning_survives_reopen_an
     };
     let mut settings = vec!["Pause: true", "Release delay"];
     if cfg!(target_os = "linux") {
-        settings.extend(["Linux backend", "Hypridle integration confirmed"]);
+        settings.push("Linux backend");
     }
     settings.extend(["Reload TOML settings", "Back"]);
     for (width, height) in [(50, 10), (52, 12), (64, 22), (100, 35)] {
@@ -99,6 +99,10 @@ fn every_supported_focus_is_visible_and_unsaved_pause_warning_survives_reopen_an
                         .iter()
                         .map(|c| c.symbol())
                         .collect();
+                    assert!(
+                        !screen.contains("Hypridle integration confirmed"),
+                        "obsolete confirmation control still visible: {screen}"
+                    );
                     assert!(
                         screen.contains(label),
                         "selected {label} hidden at {width}x{height}: {screen}"

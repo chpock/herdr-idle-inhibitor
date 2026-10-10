@@ -1,6 +1,6 @@
 # Configuration
 
-[Home](../README.md) · [How it works](behavior.md) · [Hypridle setup](hypridle-setup.md)
+[Home](../README.md) · [How it works](behavior.md) · [Optional Hypridle display tuning](hypridle-setup.md)
 
 For everyday changes, use [Settings in the popup](../README.md#everyday-use). This reference covers stored settings, manual editing and advanced endpoints/paths.
 
@@ -30,7 +30,6 @@ additional_endpoints = []
 
 [linux]
 backend = "auto"
-hypridle_integration_confirmed = false
 ```
 
 Missing settings receive defaults. Unknown keys, wrong types, unsupported schema versions, invalid backend names and out-of-range values are rejected rather than silently ignored or clamped.
@@ -42,17 +41,16 @@ Missing settings receive defaults. Unknown keys, wrong types, unsupported schema
 | `release_delay_secs` | Integer 0–60; default `5` | Grace after confirmed completion of the last work |
 | `additional_endpoints` | Array of up to 128 absolute local paths; default empty | Extra native Herdr endpoints within the current user's local scope |
 | `linux.backend` | `auto`, `hypridle`, `gnome`, `kde` | Linux desktop mechanism selection |
-| `linux.hypridle_integration_confirmed` | Boolean; default `false` | Your acknowledgment that the required Hypridle listener setup is complete |
 
-The `[linux]` section is accepted on every platform, but backend selection and Hypridle acknowledgment only affect Linux. Timing other than release delay is fixed; see [How it works](behavior.md#timing-and-recovery).
+The `[linux]` section is accepted on every platform, but backend selection only affects Linux. The obsolete Boolean `linux.hypridle_integration_confirmed` is still accepted in old configuration files, has no effect, and is omitted on the next save; no manual migration is required. Timing other than release delay is fixed; see [How it works](behavior.md#timing-and-recovery).
 
 ## Linux backend selection
 
 `auto` uses the registered `XDG_CURRENT_DESKTOP` context to choose Hyprland/Hypridle, GNOME or KDE/Plasma. Missing or ambiguous desktop context requires an explicit supported selection in Settings/TOML.
 
-An explicit backend does **not** bypass desktop-version checks, required services, permissions or Hypridle setup. It does not select a stronger fallback. Conflicting desktop/session-bus registrations are reported instead of switching one live request between unrelated desktops.
+An explicit backend does **not** bypass desktop-version checks, required services or permissions. It does not select a stronger fallback. Conflicting desktop/session-bus registrations are reported instead of switching one live request between unrelated desktops.
 
-Only set `hypridle_integration_confirmed = true` after following [Hypridle setup](hypridle-setup.md). It is a user acknowledgment, not automatic configuration detection.
+Hypridle needs no plugin-side confirmation. If sleep prevention also delays display-off or locking, use [Linux display troubleshooting](troubleshooting.md#linux-screen-does-not-turn-off); display-listener tuning is optional.
 
 ## Additional local endpoints
 
