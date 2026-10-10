@@ -966,3 +966,58 @@ async fn gate_timeout_diagnostics_replace_completed_marker_context_with_locked_g
                 .unwrap()
     );
 }
+
+#[tokio::test]
+async fn monitor_without_handover_metadata_is_rejected_without_changing_registration() {
+    let mut fixture = Fixture::new().await;
+    let mut reply = status(&mut fixture._dir, &fixture.paths.endpoint, |_| true).await;
+    reply.details.as_mut().unwrap().runtime = None;
+    let original_config = std::fs::read(&fixture.paths.config).unwrap();
+    let registry = PathBuf::from(format!(
+        "{}.plugins",
+        fixture.registration.env["HERDR_CONFIG_PATH"]
+    ));
+    let original_registry = std::fs::read(&registry).unwrap();
+    ipc::query(&fixture.paths.endpoint, Operation::PrepareUpgrade)
+        .await
+        .unwrap();
+    owner_stopped(
+        &mut fixture._dir,
+        &fixture.paths.endpoint,
+        Duration::from_secs(5),
+    )
+    .await;
+    let listener = ipc::test_listener(&fixture.paths.endpoint).unwrap();
+    let peer = tokio::spawn(async move {
+        let mut stream = listener.accept().await.unwrap();
+        let frame = herdr_idle_inhibitor::herdr::transport::read_frame(&mut stream, 1024 * 1024)
+            .await
+            .unwrap()
+            .unwrap();
+        let request: ipc::Request = serde_json::from_slice(&frame).unwrap();
+        assert!(matches!(
+            request.operation,
+            Operation::GetStatus { details: true }
+        ));
+        reply.request_id = request.request_id;
+        let mut bytes = serde_json::to_vec(&reply).unwrap();
+        bytes.push(b'\n');
+        stream.write_all(&bytes).await.unwrap();
+    });
+    let directory = fixture.worker(&fixture.plan(1000));
+    marker(&mut fixture._dir, &directory.join("error.json")).await;
+    peer.await.unwrap();
+    let error: String =
+        serde_json::from_slice(&std::fs::read(directory.join("error.json")).unwrap()).unwrap();
+    assert!(
+        error.contains("monitor does not support automatic-update handover"),
+        "{error}"
+    );
+    assert!(!directory.join("ready.json").exists());
+    assert!(!directory.join("complete.json").exists());
+    assert_eq!(
+        std::fs::read(&fixture.paths.config).unwrap(),
+        original_config
+    );
+    assert_eq!(std::fs::read(registry).unwrap(), original_registry);
+}

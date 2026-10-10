@@ -3,7 +3,6 @@ use herdr_idle_inhibitor::runtime::config::{Config, ConfigStore};
 fn strict_config_and_defaults() {
     assert_eq!(Config::default().release_delay_secs, 5);
     for text in [
-        "schema_version = 2",
         "bogus = true",
         "release_delay_secs = 61",
         "release_delay_secs = -1",
@@ -36,12 +35,12 @@ fn persisted_pause_and_no_overwrite_of_invalid_startup() {
     let mut s = ConfigStore::open(path.clone());
     s.set_paused(true).unwrap();
     assert!(ConfigStore::open(path.clone()).config.paused);
-    std::fs::write(&path, "schema_version = 99").unwrap();
+    std::fs::write(&path, "release_delay_secs = 99").unwrap();
     let s = ConfigStore::open(path.clone());
     assert!(!s.valid);
     assert_eq!(
         std::fs::read_to_string(path).unwrap(),
-        "schema_version = 99"
+        "release_delay_secs = 99"
     );
 }
 
@@ -87,7 +86,7 @@ fn legacy_hypridle_confirmation_is_readable_but_not_written() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("config.toml");
         let original = format!(
-            "schema_version = 1\npaused = true\nrelease_delay_secs = 7\n[linux]\nbackend = 'hypridle'\nhypridle_integration_confirmed = {confirmation}\n"
+            "paused = true\nrelease_delay_secs = 7\n[linux]\nbackend = 'hypridle'\nhypridle_integration_confirmed = {confirmation}\n"
         );
         std::fs::write(&path, &original).unwrap();
         let mut store = ConfigStore::open(path.clone());
@@ -131,4 +130,45 @@ fn new_config_and_details_omit_obsolete_hypridle_confirmation() {
             .get("hypridle_integration_confirmed")
             .is_none()
     );
+}
+
+#[test]
+fn configuration_is_unversioned_on_disk_and_in_details() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("config.toml");
+    let mut store = ConfigStore::open(path.clone());
+    assert!(store.valid);
+    let initial = std::fs::read_to_string(&path).unwrap();
+    let document: toml::Value = toml::from_str(&initial).unwrap();
+    assert!(document.get("schema_version").is_none());
+    assert_eq!(Config::parse(&initial).unwrap(), Config::default());
+    assert!(
+        serde_json::to_value(&store.config)
+            .unwrap()
+            .get("schema_version")
+            .is_none()
+    );
+    store.set_paused(true).unwrap();
+    let mut changed = store.config.clone();
+    changed.release_delay_secs = 7;
+    changed.linux.backend = "hypridle".into();
+    store.apply(changed.clone()).unwrap();
+    let saved = std::fs::read_to_string(&path).unwrap();
+    assert!(!saved.contains("schema_version"));
+    let reloaded = ConfigStore::open(path);
+    assert!(reloaded.valid);
+    assert_eq!(reloaded.config, changed);
+    assert_eq!(Config::parse("").unwrap(), Config::default());
+}
+
+#[test]
+fn removed_configuration_version_is_an_unknown_key_not_a_legacy_format() {
+    for version in [1, 0, 2, 99] {
+        let text = format!("schema_version = {version}\npaused = true\n");
+        let error = Config::parse(&text).expect_err("removed field must not be accepted");
+        assert!(
+            error.to_string().contains("unknown field `schema_version`"),
+            "{error}"
+        );
+    }
 }

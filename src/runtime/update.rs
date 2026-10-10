@@ -561,22 +561,6 @@ async fn endpoint_plugin(endpoint: &str) -> anyhow::Result<Option<Plugin>> {
         .into_iter()
         .find(|p| p.plugin_id == crate::herdr::discovery::PLUGIN_ID))
 }
-async fn restore_enabled(endpoints: &[String]) -> anyhow::Result<()> {
-    let mut failures = Vec::new();
-    for endpoint in endpoints {
-        if let Err(error) = api(endpoint, "plugin.enable").await {
-            failures.push(format!("{endpoint}: {error}"));
-        }
-    }
-    anyhow::ensure!(
-        failures.is_empty(),
-        "Failed to restore {} plugin roots: {}",
-        failures.len(),
-        failures.join("; ")
-    );
-    Ok(())
-}
-
 async fn root_registrations(
     base: &crate::herdr::discovery::Registration,
 ) -> anyhow::Result<Vec<crate::herdr::discovery::Registration>> {
@@ -659,8 +643,7 @@ pub async fn worker(path: &Path) -> anyhow::Result<()> {
         tokio::time::sleep(std::time::Duration::from_millis(25)).await;
     }
     eprintln!("update: preparation lock acquired");
-    let mut restore = vec![];
-    let mut previous: Option<(Binary, Handoff, bool)> = None;
+    let mut previous: Option<(Binary, Handoff)> = None;
     let mut stopping = false;
     let mut cached_monitor = false;
     let mut same_code = false;
@@ -677,47 +660,23 @@ pub async fn worker(path: &Path) -> anyhow::Result<()> {
         let mut client_images = if plan.discover_root { vec![] } else { vec![plan.publication.executable.clone()] };
         match ipc::query(&plan.paths.endpoint, Operation::GetStatus { details: true }).await {
             Ok(reply) => {
-                if let Some(details) = reply.details {
-                    if let Some(info) = details.runtime {
-                        anyhow::ensure!(info.paths.endpoint == plan.paths.endpoint && info.paths.runtime == plan.paths.runtime, "monitor ownership namespace changed");
-                        cached_monitor = info.executable.starts_with(info.paths.state.join("bin"));
-                        same_code = cached_monitor && info.digest == plan.candidate.digest;
-                        plan.candidate = super::cache::stage(&plan.candidate.path, &info.paths.state)?;
-                        plan.paths = info.paths.clone();
-                        boot.paths = info.paths.clone();
-                        boot.source = Some(info.source.clone());
-                        boot.registrations = info.registrations;
-                        boot.legacy_endpoints = info.legacy_endpoints;
-                        boot.effective_pause = info.effective_pause;
-                         boot.rejected_updates = info.rejected_updates;
-                        client_images.extend(boot.registrations.iter().map(|r| super::cache::installed(&r.plugin_root)));
-                        previous = Some((Binary { path: info.executable, digest: info.digest }, boot.clone(), true));
-                    } else {
-                        // Compatibility with the already shipped monitor: ask Herdr
-                        // to disable only this plugin, let its existing retirement
-                        // path release resources, then restore each changed registry.
-                        boot.paths.config = details.config_path.into();
-                        boot.effective_pause = (reply.status["control"]["pause_persisted"] == false).then(|| reply.status["control"]["paused"].as_bool().unwrap_or(true));
-                        let endpoints: Vec<_> = details.servers.into_iter().map(|s| s.endpoint).collect();
-                        boot.registrations = root_registrations(&plan.base).await?;
-                        boot.legacy_endpoints = endpoints.iter().filter(|e| !boot.registrations.iter().any(|r| &r.endpoint == *e)).cloned().collect();
-                        let old = super::cache::stage(&plan.publication.executable, &boot.paths.state)?;
-                        previous = Some((old, boot.clone(), false));
-                        let mut enabled = vec![];
-                        for endpoint in endpoints {
-                            if let Ok(Some(plugin)) = endpoint_plugin(&endpoint).await {
-                                client_images.push(super::cache::installed(Path::new(&plugin.plugin_root)));
-                                if plugin.enabled { enabled.push(endpoint); }
-                            }
-                        }
-                        for endpoint in enabled {
-                            api(&endpoint, "plugin.disable").await?;
-                            restore.push(endpoint);
-                        }
-                    }
-                }
+                let info = reply.details.and_then(|details| details.runtime)
+                    .ok_or_else(|| anyhow::anyhow!("monitor does not support automatic-update handover"))?;
+                anyhow::ensure!(info.paths.endpoint == plan.paths.endpoint && info.paths.runtime == plan.paths.runtime, "monitor ownership namespace changed");
+                cached_monitor = info.executable.starts_with(info.paths.state.join("bin"));
+                same_code = cached_monitor && info.digest == plan.candidate.digest;
+                plan.candidate = super::cache::stage(&plan.candidate.path, &info.paths.state)?;
+                plan.paths = info.paths.clone();
+                boot.paths = info.paths.clone();
+                boot.source = Some(info.source.clone());
+                boot.registrations = info.registrations;
+                boot.legacy_endpoints = info.legacy_endpoints;
+                boot.effective_pause = info.effective_pause;
+                boot.rejected_updates = info.rejected_updates;
+                client_images.extend(boot.registrations.iter().map(|r| super::cache::installed(&r.plugin_root)));
+                previous = Some((Binary { path: info.executable, digest: info.digest }, boot.clone()));
                 stopping = !cached_monitor;
-                if stopping && previous.as_ref().is_some_and(|p| p.2) {
+                if stopping {
                     let reply = ipc::query(&plan.paths.endpoint, Operation::PrepareUpgrade).await.map_err(|e| anyhow::anyhow!("update control query failed: {}", e.code))?;
                     anyhow::ensure!(reply.error.is_none(), "monitor rejected update preparation");
                     // Capture registrations accepted since the initial status read.
@@ -812,8 +771,6 @@ pub async fn worker(path: &Path) -> anyhow::Result<()> {
             }
         }
         drop(owner);
-        restore_enabled(&restore).await?;
-        restore.clear();
         // Add the install caller's root (including first installation) without
         // dropping registrations belonging to other configuration directories.
         for registration in if plan.direct { vec![] } else { root_registrations(&plan.base).await? } {
@@ -846,12 +803,11 @@ pub async fn worker(path: &Path) -> anyhow::Result<()> {
         let message = crate::diagnostics::sanitize(&error.to_string());
         write_json(&directory.join("error.json"), &message)?;
         write_json(&plan.paths.runtime.join("update-error.json"), &message)?;
-        let _ = restore_enabled(&restore).await;
         // All failures, including probes before owner inspection, finalize the
         // activation queue. Keep unacknowledged records for the next bootstrap.
         let _queue = queue_lock(&plan.paths).await?;
         let recovery: anyhow::Result<()> = async {
-            if stopping && let Some((image, mut boot, modern)) = previous {
+            if stopping && let Some((image, mut boot)) = previous {
                 collect_queued(&boot.paths, &mut boot.registrations)?;
                 boot.rejected_updates.insert(plan.candidate.digest.clone());
                 // Never remove a live lock or start a second native owner.
@@ -862,21 +818,6 @@ pub async fn worker(path: &Path) -> anyhow::Result<()> {
                 .await
                 .is_err()
                 {
-                    let image = if modern {
-                        image
-                    } else {
-                        // The baseline's _serve API cannot inherit unsaved Pause
-                        // or all known endpoint contexts. Recover through this
-                        // already-running update-capable runtime, not a lossy
-                        // compatibility replay or a configuration-file rewrite.
-                        boot.rejected_updates.insert(image.digest);
-                        let executable = std::env::current_exe()?;
-                        let state = boot.paths.state.clone();
-                        tokio::task::spawn_blocking(move || {
-                            super::cache::stage(&executable, &state)
-                        })
-                        .await??
-                    };
                     spawn_monitor(&image, &boot, directory).await?;
                 }
             }
@@ -942,52 +883,5 @@ pub async fn prepare_from(
             "update preparation deadline expired"
         );
         tokio::time::sleep(std::time::Duration::from_millis(25)).await;
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::fixtures;
-    use interprocess::local_socket::tokio::prelude::*;
-    use tokio::io::AsyncWriteExt;
-    #[tokio::test]
-    async fn enabling_an_unavailable_root_does_not_skip_remaining_roots() {
-        let dir = fixtures::tempdir();
-        let missing = dir
-            .path()
-            .join("missing.sock")
-            .to_string_lossy()
-            .into_owned();
-        let available = dir
-            .path()
-            .join("available.sock")
-            .to_string_lossy()
-            .into_owned();
-        let listener = super::super::ipc::test_listener(&available).unwrap();
-        let (called, observed) = tokio::sync::oneshot::channel();
-        let server = tokio::spawn(async move {
-            let mut stream = listener.accept().await.unwrap();
-            let frame = crate::herdr::transport::read_frame(&mut stream, 1024 * 1024)
-                .await
-                .unwrap()
-                .unwrap();
-            let request: serde_json::Value = serde_json::from_slice(&frame).unwrap();
-            assert_eq!(request["method"], "plugin.enable");
-            let mut response = serde_json::to_vec(
-                &serde_json::json!({"id":request["id"],"result":{"type":"plugin_enabled"}}),
-            )
-            .unwrap();
-            response.push(b'\n');
-            stream.write_all(&response).await.unwrap();
-            let _ = called.send(());
-        });
-        assert!(restore_enabled(&[missing, available]).await.is_err());
-        let received = tokio::time::timeout(std::time::Duration::from_secs(2), observed).await;
-        server.abort();
-        assert!(
-            received.is_ok(),
-            "one unavailable endpoint must not strand enabled-state restoration for the others"
-        );
     }
 }

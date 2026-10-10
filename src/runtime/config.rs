@@ -4,7 +4,6 @@ use std::{io::Write, path::PathBuf};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Config {
-    pub schema_version: u32,
     pub paused: bool,
     pub release_delay_secs: u64,
     pub additional_endpoints: Vec<String>,
@@ -29,7 +28,6 @@ impl Default for Linux {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            schema_version: 1,
             paused: false,
             release_delay_secs: 5,
             additional_endpoints: vec![],
@@ -44,7 +42,6 @@ impl Config {
         Ok(c)
     }
     pub fn validate(&self) -> anyhow::Result<()> {
-        anyhow::ensure!(self.schema_version == 1, "unsupported config schema");
         anyhow::ensure!(
             self.release_delay_secs <= 60,
             "release delay must be 0–60 seconds"

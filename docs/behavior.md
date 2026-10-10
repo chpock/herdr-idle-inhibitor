@@ -100,6 +100,4 @@ If publication fails, an already cache-resident monitor can remain on its previo
 
 Automatic replacement rejects a candidate lacking the compatible update protocol before retiring the current owner, rather than silently losing state.
 
-The first update from a release without automatic-update support is a one-time migration. That monitor cannot accept a complete state handover. The updater retires it through Herdr's enabled-state lifecycle and restores the affected registrations, attempting all of them even if one server is unavailable. If installation fails after retirement, the already-running updater's cached, handover-capable runtime recovers captured sessions and unsaved Pause instead of launching the older incompatible process. Installation still reports failure; recovery neither edits saved settings nor reverses installed files.
-
 For an actual failure, use [update troubleshooting](troubleshooting.md#automatic-update), not manual PID killing or lock deletion. Native Windows/macOS update execution is subject to the [documented testing boundaries](compatibility.md#platforms).

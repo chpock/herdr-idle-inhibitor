@@ -23,7 +23,6 @@ A missing config is initialized with defaults when the monitor starts, never by 
 ## Default file
 
 ```toml
-schema_version = 1
 paused = false
 release_delay_secs = 5
 additional_endpoints = []
@@ -32,11 +31,10 @@ additional_endpoints = []
 backend = "auto"
 ```
 
-Missing settings receive defaults. Unknown keys, wrong types, unsupported schema versions, invalid backend names and out-of-range values are rejected rather than silently ignored or clamped.
+Missing settings receive defaults. Unknown keys, wrong types, invalid backend names and out-of-range values are rejected rather than silently ignored or clamped.
 
 | Setting | Accepted values | Meaning |
 | --- | --- | --- |
-| `schema_version` | `1` | Configuration format version; separate from the app and public JSON version |
 | `paused` | Boolean; default `false` | Persistent shared Pause until Resume or an intentional config change |
 | `release_delay_secs` | Integer 0–60; default `5` | Grace after confirmed completion of the last work |
 | `additional_endpoints` | Array of up to 128 absolute local paths; default empty | Extra native Herdr endpoints within the current user's local scope |

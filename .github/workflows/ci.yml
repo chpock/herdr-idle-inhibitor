@@ -86,17 +86,6 @@ jobs:
         run: python -m unittest discover -s scripts -p "test_*.py" -v
       - name: Release build
         run: cargo build --release --locked --target-dir target
-      - name: Pre-update baseline process migration
-        if: runner.os == 'Linux'
-        shell: bash
-        run: |
-          set -euo pipefail
-          baseline=943e2fd18ac29ae19f4bb57839b4a87a96472690
-          git fetch --no-tags --depth=1 origin "$baseline"
-          mkdir -p "$RUNNER_TEMP/legacy-source"
-          git archive "$baseline" | tar -x -C "$RUNNER_TEMP/legacy-source"
-          cargo build --release --locked --manifest-path "$RUNNER_TEMP/legacy-source/Cargo.toml" --target-dir "$RUNNER_TEMP/legacy-target"
-          python scripts/test_legacy_update.py --legacy "$RUNNER_TEMP/legacy-target/release/herdr-idle-inhibitor" --current target/release/herdr-idle-inhibitor
       - name: Build-free bundle with checksums and matching vendored source
         run: python scripts/package.py --target ${{ matrix.target }} --binary ${{ matrix.binary }} --output dist
       - name: Verify unpacked executable and vendored source offline

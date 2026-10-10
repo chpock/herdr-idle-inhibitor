@@ -85,11 +85,11 @@ Windows/macOS opt-in native probes are excluded from the default suite. They inc
 cargo test --locked --lib -- --ignored
 ```
 
-CI also builds the pinned pre-update baseline and tests migration/recovery on Linux. `scripts/test_legacy_update.py` takes explicit `--legacy` and `--current` executable paths and requires the same process-test isolation. Cross-target type checking is useful, but is not native execution or proof of filesystem replacement on another OS.
+Linux process tests cover automatic executable replacement, state handover and recovery against captured Herdr responses. Cross-target type checking is useful, but is not native execution or proof of filesystem replacement on another OS.
 
 ## Diagnose a failing process test
 
-The shared-monitor CLI test, Linux executable-update process tests and legacy-migration script preserve failure evidence **before cleaning up their fixture processes and directories**. Successful runs create no failure artifact.
+The shared-monitor CLI test and Linux executable-update process tests preserve failure evidence **before cleaning up their fixture processes and directories**. Successful runs create no failure artifact.
 
 By default, evidence goes to `dist/test-failures/<test-name>-<unique-suffix>/`. The failure output prints the path to `report.json`. Set `HERDR_TEST_ARTIFACTS` to choose a different destination outside the fixture directory. CI uploads these directories as `test-failures-<target>` even when the test step fails; missing artifacts do not turn a successful job into a failure.
 

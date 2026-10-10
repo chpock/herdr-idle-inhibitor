@@ -40,10 +40,9 @@ For `update_failed` or an install preparation error:
 
 1. Inspect Herdr's plugin command log and the application's `monitor.log`.
 2. Correct the reported filesystem, execution-policy or startup error, then retry installation. A recovered monitor does not mean Herdr's file installation succeeded.
-3. For a first update from an older release, check whether Herdr enabled-state queries succeeded; preparation can abort rather than replacing files under a live old owner.
-4. If the selected replacement predates automatic-update support, choose a compatible revision. That replacement is rejected before retiring the current monitor.
+3. If the selected replacement lacks automatic-update support, choose a compatible revision. That replacement is rejected before retiring the current monitor.
 
-Do not delete locks or terminate a PID copied from status. Compatible-code recovery and the first-update migration have different semantics; [How it works](behavior.md#failure-and-compatibility) explains them. For rebuilding a linked checkout in place on Windows, close its popup first as described in [Development](development.md#change-and-rebuild-a-linked-checkout).
+Do not delete locks or terminate a PID copied from status. [How it works](behavior.md#failure-and-compatibility) explains recovery after an update failure. For rebuilding a linked checkout in place on Windows, close its popup first as described in [Development](development.md#change-and-rebuild-a-linked-checkout).
 
 ## Configuration failures
 
