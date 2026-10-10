@@ -15,6 +15,7 @@ import subprocess
 import tempfile
 import time
 import uuid
+from test_artifacts import preserve
 
 ROOT = Path(__file__).resolve().parents[1]
 BASELINE = "943e2fd18ac29ae19f4bb57839b4a87a96472690"
@@ -39,16 +40,21 @@ async def query(endpoint, operation):
         await writer.wait_closed()
 
 
-async def wait_status(endpoint, predicate, timeout=15):
+async def wait_status(endpoint, predicate, timeout=15, diagnostics=None):
     deadline = time.monotonic() + timeout
+    if diagnostics is not None:
+        diagnostics["wait"] = {"kind": "status predicate", "endpoint": endpoint, "deadline_seconds": timeout}
     while True:
         try:
             reply = await query(endpoint, {"type": "GetStatus", "details": True})
+            if diagnostics is not None:
+                diagnostics["status.last_reply"] = reply
             if predicate(reply):
                 return reply
-        except (OSError, asyncio.TimeoutError):
-            pass
-        assert time.monotonic() < deadline, "legacy recovery status deadline expired"
+        except (OSError, asyncio.TimeoutError) as error:
+            if diagnostics is not None:
+                diagnostics["status.last_error"] = {"type": type(error).__name__, "message": str(error), "errno": getattr(error, "errno", None)}
+        assert time.monotonic() < deadline, f"legacy recovery status deadline expired; last query evidence: {diagnostics}"
         await asyncio.sleep(0.025)
 
 
@@ -114,6 +120,7 @@ async def scenario(legacy, current, directory, publication_succeeds, inject_fail
             await writer.wait_closed()
 
     log = directory / "legacy.log"
+    diagnostics = {"baseline_commit": BASELINE, "publication_succeeds": publication_succeeds, "candidate_digest": candidate_digest, "phase": "starting legacy authority"}
     try:
         for index in range(2):
             root = directory / f"root-{index}"
@@ -129,12 +136,12 @@ async def scenario(legacy, current, directory, publication_succeeds, inject_fail
             servers.append(await asyncio.start_unix_server(lambda r, w, i=index: serve(i, r, w), address))
         with log.open("wb") as output:
             children.append(subprocess.Popen([str(Path(registrations[0]["plugin_root"]) / "target/release/herdr-idle-inhibitor"), "_serve"], env=environment, cwd=directory, stdout=output, stderr=output))
-        initial = await wait_status(endpoint, lambda r: r["details"] is not None)
+        initial = await wait_status(endpoint, lambda r: r["details"] is not None, diagnostics=diagnostics)
         assert initial["details"]["config_path"] == str(config), "startup did not become the fixture authority"
         for registration in registrations:
             reply = await query(endpoint, {"type": "RegisterAndRefresh", "registration": registration})
             assert reply["error"] is None
-        before = await wait_status(endpoint, lambda r: r["status"]["observation"]["working_agents_observed"] == expected)
+        before = await wait_status(endpoint, lambda r: r["status"]["observation"]["working_agents_observed"] == expected, diagnostics=diagnostics)
         assert before["details"].get("runtime") is None, "must really exercise baseline legacy IPC"
         # A valid external edit makes the baseline's expected hash stale. Pause
         # applies in memory but its attempted save cannot overwrite that edit.
@@ -146,6 +153,7 @@ async def scenario(legacy, current, directory, publication_succeeds, inject_fail
         counts_before = list(counters)
         if inject_failure:
             raise InjectedFailure("deliberate failure before legacy migration")
+        diagnostics["phase"] = "awaiting updater readiness/publication"
         ticket = directory / "update"
         ticket.mkdir(mode=0o700)
         paths = {"config": str(config), "state": str(state), "runtime": str(runtime), "endpoint": endpoint}
@@ -156,6 +164,7 @@ async def scenario(legacy, current, directory, publication_succeeds, inject_fail
         deadline = time.monotonic() + 45
         while not (ticket / "ready.json").exists():
             assert not (ticket / "error.json").exists(), (ticket / "error.json").read_text() if (ticket / "error.json").exists() else ""
+            diagnostics["wait"] = {"kind": "updater ready marker", "marker": str(ticket / "ready.json"), "deadline_seconds": 45}
             assert time.monotonic() < deadline, log.read_text()
             await asyncio.sleep(0.025)
         if publication_succeeds:
@@ -166,10 +175,12 @@ async def scenario(legacy, current, directory, publication_succeeds, inject_fail
             commits[0] = "new-commit"
             registry(0)
         marker = ticket / ("complete.json" if publication_succeeds else "error.json")
+        diagnostics["wait"] = {"kind": "updater final marker", "marker": str(marker), "deadline_seconds": 45}
         while not marker.exists():
             assert time.monotonic() < deadline, log.read_text()
             await asyncio.sleep(0.025)
-        after = await wait_status(endpoint, lambda r: r["status"]["observation"]["working_agents_observed"] == expected and r["status"]["monitor"]["instance_id"] != before["status"]["monitor"]["instance_id"])
+        diagnostics["phase"] = "verifying recovered monitor and captured observations"
+        after = await wait_status(endpoint, lambda r: r["status"]["observation"]["working_agents_observed"] == expected and r["status"]["monitor"]["instance_id"] != before["status"]["monitor"]["instance_id"], diagnostics=diagnostics)
         assert after["status"]["control"]["paused"] is True, "unsaved Pause lost during legacy transition"
         assert after["status"]["control"]["pause_persisted"] is False
         assert after["status"]["diagnostics"]["counters"]["native_acquires"] == 0
@@ -177,16 +188,21 @@ async def scenario(legacy, current, directory, publication_succeeds, inject_fail
         assert all(new > old for new, old in zip(counters, counts_before)), "both roots need fresh captured observations"
         assert enabled == [True, True]
         assert config.read_bytes() == original, "transition must not overwrite configuration"
+        diagnostics["phase"] = "verifying stable recovered instance"
         instance = after["status"]["monitor"]["instance_id"]
         await asyncio.sleep(6)
         assert (await query(endpoint, {"type": "GetStatus"}))["status"]["monitor"]["instance_id"] == instance
+        diagnostics["phase"] = "fixture cooperative shutdown"
         await query(endpoint, {"type": "PrepareUpgrade"})
         deadline = time.monotonic() + 10
         while Path(endpoint).exists():
             assert time.monotonic() < deadline
             await asyncio.sleep(0.025)
         print(json.dumps({"baseline_commit": BASELINE, "publication_succeeded": publication_succeeds, "known_roots": 2, "working_agents_observed": expected, "captured_snapshot_calls_before": counts_before, "captured_snapshot_calls_after": counters, "unsaved_pause_preserved": True, "configuration_unchanged": True, "native_acquires": 0, "stable_recovered_instance": True}))
-    except BaseException:
+    except BaseException as error:
+        if not isinstance(error, InjectedFailure):
+            diagnostics["captured_snapshot_calls"] = list(counters)
+            preserve(directory, children, diagnostics, [legacy, current], f"{type(error).__name__}: {error}")
         print(log.read_text() if log.exists() else "legacy fixture did not start", flush=True)
         raise
     finally:

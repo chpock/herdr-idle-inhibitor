@@ -104,14 +104,14 @@ async fn wait_status(
 ) -> serde_json::Value {
     let deadline = tokio::time::Instant::now() + Duration::from_secs(8);
     loop {
-        if let Ok(r) = ipc::query(endpoint, Operation::GetStatus { details: false }).await
-            && predicate(&r.status)
-        {
-            return r.status;
-        }
+        let outcome = match ipc::query(endpoint, Operation::GetStatus { details: false }).await {
+            Ok(reply) if predicate(&reply.status) => return reply.status,
+            Ok(reply) => serde_json::json!({"predicate_satisfied":false,"reply":reply}),
+            Err(error) => serde_json::json!({"code":error.code,"exit":error.exit}),
+        };
         assert!(
             tokio::time::Instant::now() < deadline,
-            "status condition timeout"
+            "status condition timeout after 8 seconds; endpoint={endpoint}; last outcome={outcome}"
         );
         tokio::time::sleep(Duration::from_millis(20)).await;
     }

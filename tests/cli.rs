@@ -1,36 +1,31 @@
+#[path = "support/diagnostics.rs"]
+mod diagnostics;
 #[path = "support/tempdir.rs"]
 mod fixtures;
 
+use diagnostics::Diagnostics;
 use herdr_idle_inhibitor::runtime::{
     ipc::{self, Operation},
     paths::Paths,
 };
-use std::{
-    process::{Child, Command, Stdio},
-    time::Duration,
-};
-struct Children(Vec<Child>);
-impl Drop for Children {
-    fn drop(&mut self) {
-        for c in &mut self.0 {
-            let _ = c.kill();
-            let _ = c.wait();
-        }
-    }
-}
+use std::{process::Command, time::Duration};
 #[tokio::test]
 async fn actual_status_is_read_only_and_concurrent_processes_have_one_owner() {
-    let dir = fixtures::tempdir();
+    let mut diagnostics = Diagnostics::new(fixtures::tempdir(), None);
+    let directory = diagnostics.path().to_owned();
     let binary = env!("CARGO_BIN_EXE_herdr-idle-inhibitor");
     let command = || {
         let mut c = Command::new(binary);
-        c.env("XDG_CONFIG_HOME", dir.path().join("config"))
-            .env("XDG_STATE_HOME", dir.path().join("state"));
+        c.env("XDG_CONFIG_HOME", directory.as_path().join("config"))
+            .env("XDG_STATE_HOME", directory.as_path().join("state"));
         c.env(
             "HERDR_IDLE_INHIBITOR_CONFIG",
-            dir.path().join("config/config.toml"),
+            directory.as_path().join("config/config.toml"),
         )
-        .env("HERDR_IDLE_INHIBITOR_STATE", dir.path().join("state"));
+        .env(
+            "HERDR_IDLE_INHIBITOR_STATE",
+            directory.as_path().join("state"),
+        );
         for (k, _) in std::env::vars_os() {
             if k.to_string_lossy().starts_with("HERDR_")
                 && !k.to_string_lossy().starts_with("HERDR_IDLE_INHIBITOR_")
@@ -41,6 +36,7 @@ async fn actual_status_is_read_only_and_concurrent_processes_have_one_owner() {
         c
     };
     let before = command().args(["status", "--json"]).output().unwrap();
+    diagnostics.record("initial_status", serde_json::json!({"exit":before.status.code(), "stdout":String::from_utf8_lossy(&before.stdout), "stderr":String::from_utf8_lossy(&before.stderr)}));
     assert_eq!(
         before.status.code(),
         Some(3),
@@ -52,16 +48,16 @@ async fn actual_status_is_read_only_and_concurrent_processes_have_one_owner() {
         serde_json::Value::Null
     );
     assert_eq!(value["available"], false);
-    assert!(!dir.path().join("config").exists());
-    assert!(!dir.path().join("state").exists());
+    assert!(!directory.as_path().join("config").exists());
+    assert!(!directory.as_path().join("state").exists());
     #[cfg(unix)]
     {
         // A fully contextual SHOW must not bootstrap an owner; context is optional too.
-        check_popup_open_path(dir.path(), &command);
+        check_popup_open_path(directory.as_path(), &command);
         let after_show = command().args(["status", "--json"]).output().unwrap();
         assert_eq!(after_show.status.code(), Some(3));
-        assert!(!dir.path().join("config").exists());
-        assert!(!dir.path().join("state").exists());
+        assert!(!directory.as_path().join("config").exists());
+        assert!(!directory.as_path().join("state").exists());
         let without_registration = command()
             .arg("_open")
             .env("HERDR_BIN_PATH", "/usr/bin/true")
@@ -74,37 +70,37 @@ async fn actual_status_is_read_only_and_concurrent_processes_have_one_owner() {
             "{}",
             String::from_utf8_lossy(&without_registration.stderr)
         );
-        assert!(!dir.path().join("config").exists());
-        assert!(!dir.path().join("state").exists());
+        assert!(!directory.as_path().join("config").exists());
+        assert!(!directory.as_path().join("state").exists());
     }
-    let mut children = Children(vec![]);
     for _ in 0..4 {
-        children.0.push(
-            command()
-                .arg("_serve")
-                .stdin(Stdio::null())
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .spawn()
-                .unwrap(),
-        );
+        diagnostics
+            .spawn("monitor", command().arg("_serve"))
+            .unwrap();
     }
     let endpoint = Paths::get().unwrap().endpoint;
     let deadline = tokio::time::Instant::now() + Duration::from_secs(5);
+    let mut attempts = 0;
+    diagnostics.record("phase", serde_json::json!({"operation":"start four monitors; await one responding owner", "endpoint":endpoint,"deadline_seconds":5}));
     loop {
-        if ipc::query(&endpoint, Operation::GetStatus { details: false })
-            .await
-            .is_ok()
-        {
-            break;
+        attempts += 1;
+        match ipc::query(&endpoint, Operation::GetStatus { details: false }).await {
+            Ok(reply) => {
+                diagnostics.record("status.last_reply", serde_json::json!(reply));
+                break;
+            }
+            Err(error) => diagnostics.record("status.last_error", serde_json::json!({"endpoint":endpoint,"code":error.code,"exit":error.exit,"attempt":attempts})),
         }
-        assert!(tokio::time::Instant::now() < deadline);
+        diagnostics.check(
+            tokio::time::Instant::now() < deadline,
+            "monitor startup deadline expired after 5 seconds",
+        );
         tokio::time::sleep(Duration::from_millis(20)).await;
     }
     tokio::time::sleep(Duration::from_millis(100)).await;
     assert_eq!(
-        children
-            .0
+        diagnostics
+            .children_mut()
             .iter_mut()
             .map(|c| c.try_wait().unwrap().is_none() as usize)
             .sum::<usize>(),
@@ -112,6 +108,7 @@ async fn actual_status_is_read_only_and_concurrent_processes_have_one_owner() {
     );
     for _ in 0..100 {
         let output = command().args(["status", "--json"]).output().unwrap();
+        diagnostics.record("standalone_status", serde_json::json!({"exit":output.status.code(),"stdout":String::from_utf8_lossy(&output.stdout),"stderr":String::from_utf8_lossy(&output.stderr)}));
         assert_eq!(output.status.code(), Some(0));
         assert_eq!(output.stdout.iter().filter(|b| **b == b'\n').count(), 1);
         let v: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
@@ -128,6 +125,10 @@ async fn actual_status_is_read_only_and_concurrent_processes_have_one_owner() {
             assert_eq!(counters[key], 0, "status induced {key}");
         }
     }
+    diagnostics.record(
+        "phase",
+        serde_json::json!("verify passive SHOW, explicit START and shared Pause"),
+    );
     let paused = ipc::query(&endpoint, Operation::SetPaused { paused: true })
         .await
         .unwrap();
@@ -137,7 +138,7 @@ async fn actual_status_is_read_only_and_concurrent_processes_have_one_owner() {
         let before_popup = ipc::query(&endpoint, Operation::GetStatus { details: true })
             .await
             .unwrap();
-        check_popup_open_path(dir.path(), &command);
+        check_popup_open_path(directory.as_path(), &command);
         let after_popup = ipc::query(&endpoint, Operation::GetStatus { details: true })
             .await
             .unwrap();
@@ -175,7 +176,7 @@ async fn actual_status_is_read_only_and_concurrent_processes_have_one_owner() {
             .iter()
             .find(|action| action["id"].as_str() == Some("start"))
             .expect("an explicit start action must be available independently of SHOW");
-        let arguments = dir.path().join("popup-arguments");
+        let arguments = directory.as_path().join("popup-arguments");
         std::fs::remove_file(&arguments).unwrap();
         let started = command()
             .args(
@@ -183,9 +184,9 @@ async fn actual_status_is_read_only_and_concurrent_processes_have_one_owner() {
                     .iter()
                     .map(|arg| arg.as_str().unwrap()),
             )
-            .env("HERDR_BIN_PATH", dir.path().join("fake-herdr"))
-            .env("HERDR_SOCKET_PATH", dir.path().join("herdr.sock"))
-            .env("HERDR_PLUGIN_ROOT", dir.path())
+            .env("HERDR_BIN_PATH", directory.as_path().join("fake-herdr"))
+            .env("HERDR_SOCKET_PATH", directory.as_path().join("herdr.sock"))
+            .env("HERDR_PLUGIN_ROOT", directory.as_path())
             .output()
             .unwrap();
         assert!(
@@ -213,14 +214,22 @@ async fn actual_status_is_read_only_and_concurrent_processes_have_one_owner() {
         );
         let registrations = after_start.details.unwrap().runtime.unwrap().registrations;
         assert_eq!(registrations.len(), 1);
-        assert_eq!(registrations[0].plugin_root, dir.path());
+        assert_eq!(registrations[0].plugin_root, directory.as_path());
         assert_eq!(
             registrations[0].endpoint,
-            dir.path().join("herdr.sock").to_str().unwrap()
+            directory.as_path().join("herdr.sock").to_str().unwrap()
         );
     }
-    drop(children);
+    diagnostics.record(
+        "phase",
+        serde_json::json!("terminate owned monitors; verify unavailable status"),
+    );
+    for child in diagnostics.children_mut() {
+        let _ = child.kill();
+        let _ = child.wait();
+    }
     let after = command().args(["status", "--json"]).output().unwrap();
+    diagnostics.record("after_shutdown", serde_json::json!({"exit":after.status.code(),"stdout":String::from_utf8_lossy(&after.stdout),"stderr":String::from_utf8_lossy(&after.stderr)}));
     assert_eq!(after.status.code(), Some(3));
 }
 

@@ -1,8 +1,11 @@
 //! Real cached executables and update helpers against captured Herdr traffic.
 //! Linux overlay bytes produce different artifacts with the same package version.
 #![cfg(target_os = "linux")]
+#[path = "support/diagnostics.rs"]
+mod diagnostics;
 #[path = "support/tempdir.rs"]
 mod fixtures;
+use diagnostics::Diagnostics;
 use herdr_idle_inhibitor::{
     herdr::discovery::Registration,
     runtime::{
@@ -17,7 +20,7 @@ use std::{
     collections::BTreeMap,
     os::unix::fs::PermissionsExt,
     path::{Path, PathBuf},
-    process::{Child, Command, Stdio},
+    process::Command,
     sync::{
         Arc,
         atomic::{AtomicUsize, Ordering},
@@ -27,7 +30,7 @@ use std::{
 use tokio::io::AsyncWriteExt;
 
 struct Fixture {
-    _dir: tempfile::TempDir,
+    _dir: Diagnostics,
     paths: Paths,
     root: PathBuf,
     candidate: cache::Binary,
@@ -35,27 +38,17 @@ struct Fixture {
     registration: Registration,
     snapshots: Arc<AtomicUsize>,
     server: tokio::task::JoinHandle<()>,
-    children: Vec<Child>,
 }
 impl Drop for Fixture {
     fn drop(&mut self) {
         if std::thread::panicking() {
-            eprintln!(
-                "worker log: {:?}",
-                std::fs::read_to_string(self.paths.state.join("monitor.log"))
+            self._dir.record(
+                "captured_snapshot_calls",
+                serde_json::json!(self.snapshots.load(Ordering::SeqCst)),
             );
-            if let Ok(entries) = std::fs::read_dir(self.paths.state.join("updates")) {
-                for entry in entries.flatten() {
-                    eprintln!(
-                        "worker error: {:?}",
-                        std::fs::read_to_string(entry.path().join("error.json"))
-                    );
-                }
-            }
-        }
-        for child in &mut self.children {
-            let _ = child.kill();
-            let _ = child.wait();
+            let _ = self
+                ._dir
+                .preserve("upgrade process fixture panicked; see original assertion");
         }
         self.server.abort();
     }
@@ -64,35 +57,89 @@ fn private_json(path: &Path, value: &impl serde::Serialize) {
     std::fs::write(path, serde_json::to_vec(value).unwrap()).unwrap();
     std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600)).unwrap();
 }
-async fn status(endpoint: &str, test: impl Fn(&serde_json::Value) -> bool) -> ipc::Reply {
-    let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
-    loop {
-        if let Ok(reply) = ipc::query(endpoint, Operation::GetStatus { details: true }).await
-            && test(&reply.status)
-        {
-            return reply;
+#[track_caller]
+fn status<'a>(
+    diagnostics: &'a mut Diagnostics,
+    endpoint: &'a str,
+    test: impl Fn(&serde_json::Value) -> bool + 'a,
+) -> impl std::future::Future<Output = ipc::Reply> + 'a {
+    let caller = std::panic::Location::caller();
+    async move {
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
+        diagnostics.record("wait", serde_json::json!({"kind":"status predicate", "endpoint":endpoint, "deadline_seconds":10,"caller":caller.to_string()}));
+        let mut attempts = 0;
+        loop {
+            attempts += 1;
+            match ipc::query(endpoint, Operation::GetStatus { details: true }).await {
+                Ok(reply) => {
+                    let matched = test(&reply.status);
+                    diagnostics.record("status.last_reply", serde_json::json!({"status":reply.status,"details":reply.details,"error":reply.error,"predicate_satisfied":matched,"attempt":attempts}));
+                    if matched { return reply; }
+                }
+                Err(error) => diagnostics.record("status.last_error", serde_json::json!({"endpoint":endpoint,"code":error.code,"exit":error.exit,"attempt":attempts})),
+            }
+            diagnostics.check(
+                tokio::time::Instant::now() < deadline,
+                "status replay deadline expired after 10 seconds",
+            );
+            tokio::time::sleep(Duration::from_millis(25)).await;
         }
-        assert!(
+    }
+}
+async fn marker(diagnostics: &mut Diagnostics, path: &Path) {
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
+    diagnostics.record(
+        "wait",
+        serde_json::json!({"kind":"update marker", "path":path,"deadline_seconds":10}),
+    );
+    while !path.is_file() {
+        diagnostics.check(
             tokio::time::Instant::now() < deadline,
-            "status replay deadline expired"
+            &format!(
+                "update marker deadline after 10 seconds: {}",
+                path.display()
+            ),
         );
         tokio::time::sleep(Duration::from_millis(25)).await;
     }
 }
-async fn marker(path: &Path) {
-    let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
-    while !path.is_file() {
-        assert!(
+async fn owner_stopped(diagnostics: &mut Diagnostics, endpoint: &str, timeout: Duration) {
+    let deadline = tokio::time::Instant::now() + timeout;
+    diagnostics.record("wait", serde_json::json!({"kind":"owner shutdown", "endpoint":endpoint,"deadline_seconds":timeout.as_secs()}));
+    loop {
+        match ipc::query(endpoint, Operation::GetStatus { details: false }).await {
+            Ok(reply) => diagnostics.record("status.last_reply", serde_json::json!({"status":reply.status,"details":reply.details,"error":reply.error,"predicate_satisfied":false})),
+            Err(error) => {
+                diagnostics.record("status.last_error", serde_json::json!({"endpoint":endpoint,"code":error.code,"exit":error.exit}));
+                return;
+            }
+        }
+        diagnostics.check(
             tokio::time::Instant::now() < deadline,
-            "update marker deadline: {}",
-            path.display()
+            "owner shutdown deadline expired",
+        );
+        tokio::time::sleep(Duration::from_millis(25)).await;
+    }
+}
+async fn gate_released(diagnostics: &mut Diagnostics, paths: &Paths, timeout: Duration) {
+    let deadline = tokio::time::Instant::now() + timeout;
+    diagnostics.record("wait", serde_json::json!({"kind":"update gate release", "path":paths.runtime.join("update.lock"),"deadline_seconds":timeout.as_secs()}));
+    loop {
+        let pending = herdr_idle_inhibitor::runtime::update::pending(paths).unwrap();
+        diagnostics.record("gate.last_pending", serde_json::json!(pending));
+        if !pending {
+            return;
+        }
+        diagnostics.check(
+            tokio::time::Instant::now() < deadline,
+            "update gate release deadline expired",
         );
         tokio::time::sleep(Duration::from_millis(25)).await;
     }
 }
 impl Fixture {
     async fn new() -> Self {
-        let dir = fixtures::tempdir();
+        let mut dir = Diagnostics::new(fixtures::tempdir(), None);
         let root = dir.path().join("installed");
         let executable = cache::installed(&root);
         std::fs::create_dir_all(executable.parent().unwrap()).unwrap();
@@ -132,6 +179,10 @@ impl Fixture {
         let old = cache::stage(&executable, &paths.state).unwrap();
         let candidate = cache::stage(&artifact, &paths.state).unwrap();
         assert_ne!(old.digest, candidate.digest);
+        dir.record(
+            "images",
+            serde_json::json!({"old":old,"candidate":candidate,"installed":executable}),
+        );
         let herdr = dir.path().join("herdr");
         assert!(
             Command::new("rustc")
@@ -219,16 +270,18 @@ impl Fixture {
         };
         let boot_path = dir.path().join("boot.json");
         private_json(&boot_path, &boot);
-        let child = Command::new(&old.path)
-            .env("TOKIO_WORKER_THREADS", "2")
-            .arg("_resume")
-            .arg(&boot_path)
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()
-            .unwrap();
-        status(&paths.endpoint, |v| v["observation"]["work"] == "working").await;
+        dir.spawn(
+            "monitor",
+            Command::new(&old.path)
+                .env("TOKIO_WORKER_THREADS", "2")
+                .arg("_resume")
+                .arg(&boot_path),
+        )
+        .unwrap();
+        status(&mut dir, &paths.endpoint, |v| {
+            v["observation"]["work"] == "working"
+        })
+        .await;
         Self {
             _dir: dir,
             paths,
@@ -238,7 +291,6 @@ impl Fixture {
             registration,
             snapshots,
             server,
-            children: vec![child],
         }
     }
     fn plan(&self, timeout_ms: u64) -> Plan {
@@ -261,24 +313,22 @@ impl Fixture {
         }
     }
     fn worker(&mut self, plan: &Plan) -> PathBuf {
-        let directory = self
-            ._dir
-            .path()
-            .join(format!("worker-{}", self.children.len()));
+        let count = self._dir.children_mut().len();
+        let directory = self._dir.path().join(format!("worker-{count}"));
         std::fs::create_dir(&directory).unwrap();
         std::fs::set_permissions(&directory, std::fs::Permissions::from_mode(0o700)).unwrap();
         let path = directory.join("plan.json");
         private_json(&path, plan);
-        let child = Command::new(&self.old.path)
-            .env("TOKIO_WORKER_THREADS", "2")
-            .arg("_upgrade_worker")
-            .arg(path)
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()
+        self._dir.record("update_plan", serde_json::json!(plan));
+        self._dir
+            .spawn(
+                "upgrade-worker",
+                Command::new(&self.old.path)
+                    .env("TOKIO_WORKER_THREADS", "2")
+                    .arg("_upgrade_worker")
+                    .arg(path),
+            )
             .unwrap();
-        self.children.push(child);
         directory
     }
     fn publish(&self, commit: &str) {
@@ -300,24 +350,28 @@ impl Fixture {
 async fn cached_monitor_remains_live_until_both_files_and_registry_publish_then_restarts() {
     let mut fixture = Fixture::new().await;
     let original = std::fs::read(&fixture.paths.config).unwrap();
-    let before = status(&fixture.paths.endpoint, |_| true).await;
+    let before = status(&mut fixture._dir, &fixture.paths.endpoint, |_| true).await;
     let instance = before.status["monitor"]["instance_id"].clone();
     let directory = fixture.worker(&fixture.plan(5000));
-    marker(&directory.join("ready.json")).await;
+    marker(&mut fixture._dir, &directory.join("ready.json")).await;
     assert_eq!(
-        status(&fixture.paths.endpoint, |_| true).await.status["monitor"]["instance_id"],
+        status(&mut fixture._dir, &fixture.paths.endpoint, |_| true)
+            .await
+            .status["monitor"]["instance_id"],
         instance
     );
     fixture.publish("old-commit");
     assert_eq!(
-        status(&fixture.paths.endpoint, |_| true).await.status["monitor"]["instance_id"],
+        status(&mut fixture._dir, &fixture.paths.endpoint, |_| true)
+            .await
+            .status["monitor"]["instance_id"],
         instance,
         "file replacement alone cannot terminate the working monitor"
     );
     let snapshots = fixture.snapshots.load(Ordering::SeqCst);
     fixture.publish("new-commit");
-    marker(&directory.join("complete.json")).await;
-    let after = status(&fixture.paths.endpoint, |v| {
+    marker(&mut fixture._dir, &directory.join("complete.json")).await;
+    let after = status(&mut fixture._dir, &fixture.paths.endpoint, |v| {
         v["observation"]["work"] == "working"
     })
     .await;
@@ -349,9 +403,9 @@ async fn cached_monitor_remains_live_until_both_files_and_registry_publish_then_
 async fn failed_publication_keeps_the_old_cached_monitor_and_settings() {
     let mut fixture = Fixture::new().await;
     let original = std::fs::read(&fixture.paths.config).unwrap();
-    let before = status(&fixture.paths.endpoint, |_| true).await;
+    let before = status(&mut fixture._dir, &fixture.paths.endpoint, |_| true).await;
     let directory = fixture.worker(&fixture.plan(1000));
-    marker(&directory.join("ready.json")).await;
+    marker(&mut fixture._dir, &directory.join("ready.json")).await;
     let mut queued = fixture.registration.clone();
     queued.env.insert(
         "XDG_STATE_HOME".into(),
@@ -367,13 +421,9 @@ async fn failed_publication_keeps_the_old_cached_monitor_and_settings() {
             .await
             .unwrap()
     );
-    marker(&directory.join("error.json")).await;
-    let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
-    while herdr_idle_inhibitor::runtime::update::pending(&fixture.paths).unwrap() {
-        assert!(tokio::time::Instant::now() < deadline);
-        tokio::time::sleep(Duration::from_millis(25)).await;
-    }
-    let after = status(&fixture.paths.endpoint, |_| true).await;
+    marker(&mut fixture._dir, &directory.join("error.json")).await;
+    gate_released(&mut fixture._dir, &fixture.paths, Duration::from_secs(10)).await;
+    let after = status(&mut fixture._dir, &fixture.paths.endpoint, |_| true).await;
     assert_eq!(
         after.status["monitor"]["instance_id"],
         before.status["monitor"]["instance_id"]
@@ -406,12 +456,12 @@ async fn failed_publication_keeps_the_old_cached_monitor_and_settings() {
 #[tokio::test]
 async fn identical_artifact_does_not_restart_the_cached_owner() {
     let mut fixture = Fixture::new().await;
-    let before = status(&fixture.paths.endpoint, |_| true).await;
+    let before = status(&mut fixture._dir, &fixture.paths.endpoint, |_| true).await;
     let mut plan = fixture.plan(5000);
     plan.candidate = fixture.old.clone();
     plan.publication.digest = fixture.old.digest.clone();
     let directory = fixture.worker(&plan);
-    marker(&directory.join("ready.json")).await;
+    marker(&mut fixture._dir, &directory.join("ready.json")).await;
     private_json(
         &PathBuf::from(format!(
             "{}.plugins",
@@ -419,8 +469,8 @@ async fn identical_artifact_does_not_restart_the_cached_owner() {
         )),
         &serde_json::json!({"result":{"plugins":[{"plugin_id":"herdr-idle-inhibitor","enabled":true,"plugin_root":fixture.root,"source":{"kind":"github","resolved_commit":"new-commit"}}]}}),
     );
-    marker(&directory.join("complete.json")).await;
-    let after = status(&fixture.paths.endpoint, |_| true).await;
+    marker(&mut fixture._dir, &directory.join("complete.json")).await;
+    let after = status(&mut fixture._dir, &fixture.paths.endpoint, |_| true).await;
     assert_eq!(
         after.status["monitor"]["instance_id"],
         before.status["monitor"]["instance_id"]
@@ -439,7 +489,7 @@ async fn identical_artifact_does_not_restart_the_cached_owner() {
 async fn activation_during_publication_is_replayed_before_the_gate_opens() {
     let mut fixture = Fixture::new().await;
     let directory = fixture.worker(&fixture.plan(5000));
-    marker(&directory.join("ready.json")).await;
+    marker(&mut fixture._dir, &directory.join("ready.json")).await;
     let mut queued = fixture.registration.clone();
     queued.env.insert(
         "XDG_STATE_HOME".into(),
@@ -456,8 +506,8 @@ async fn activation_during_publication_is_replayed_before_the_gate_opens() {
             .unwrap()
     );
     fixture.publish("new-commit");
-    marker(&directory.join("complete.json")).await;
-    let after = status(&fixture.paths.endpoint, |v| {
+    marker(&mut fixture._dir, &directory.join("complete.json")).await;
+    let after = status(&mut fixture._dir, &fixture.paths.endpoint, |v| {
         v["observation"]["work"] == "working"
     })
     .await;
@@ -483,8 +533,8 @@ async fn activation_during_publication_is_replayed_before_the_gate_opens() {
 
 #[tokio::test]
 async fn source_build_preparation_returns_before_publication_and_uses_registered_root() {
-    let fixture = Fixture::new().await;
-    let before = status(&fixture.paths.endpoint, |_| true).await;
+    let mut fixture = Fixture::new().await;
+    let before = status(&mut fixture._dir, &fixture.paths.endpoint, |_| true).await;
     let checkout = fixture._dir.path().join("new-checkout");
     let source = cache::installed(&checkout);
     std::fs::create_dir_all(source.parent().unwrap()).unwrap();
@@ -505,11 +555,13 @@ async fn source_build_preparation_returns_before_publication_and_uses_registered
     .unwrap();
     assert!(herdr_idle_inhibitor::runtime::update::pending(&fixture.paths).unwrap());
     assert_eq!(
-        status(&fixture.paths.endpoint, |_| true).await.status["monitor"]["instance_id"],
+        status(&mut fixture._dir, &fixture.paths.endpoint, |_| true)
+            .await
+            .status["monitor"]["instance_id"],
         before.status["monitor"]["instance_id"]
     );
     fixture.publish("new-commit");
-    let after = status(&fixture.paths.endpoint, |v| {
+    let after = status(&mut fixture._dir, &fixture.paths.endpoint, |v| {
         v["monitor"]["instance_id"] != before.status["monitor"]["instance_id"]
             && v["observation"]["work"] == "working"
     })
@@ -526,21 +578,16 @@ async fn source_build_preparation_returns_before_publication_and_uses_registered
 
 #[tokio::test]
 async fn first_install_discovers_the_published_custom_root_without_a_hardcoded_config_path() {
-    let fixture = Fixture::new().await;
+    let mut fixture = Fixture::new().await;
     ipc::query(&fixture.paths.endpoint, Operation::PrepareUpgrade)
         .await
         .unwrap();
-    let deadline = tokio::time::Instant::now() + Duration::from_secs(5);
-    while ipc::query(
+    owner_stopped(
+        &mut fixture._dir,
         &fixture.paths.endpoint,
-        Operation::GetStatus { details: false },
+        Duration::from_secs(5),
     )
-    .await
-    .is_ok()
-    {
-        assert!(tokio::time::Instant::now() < deadline);
-        tokio::time::sleep(Duration::from_millis(25)).await;
-    }
+    .await;
     let registry = PathBuf::from(format!(
         "{}.plugins",
         fixture.registration.env["HERDR_CONFIG_PATH"]
@@ -563,7 +610,7 @@ async fn first_install_discovers_the_published_custom_root_without_a_hardcoded_c
     .unwrap();
     assert!(herdr_idle_inhibitor::runtime::update::pending(&fixture.paths).unwrap());
     fixture.publish("new-commit");
-    let after = status(&fixture.paths.endpoint, |v| {
+    let after = status(&mut fixture._dir, &fixture.paths.endpoint, |v| {
         v["observation"]["work"] == "working"
     })
     .await;
@@ -591,10 +638,10 @@ async fn failed_new_process_restores_the_previous_cached_artifact_and_pause() {
     std::fs::set_permissions(&bad, std::fs::Permissions::from_mode(0o700)).unwrap();
     fixture.candidate = cache::stage(&bad, &fixture.paths.state).unwrap();
     let directory = fixture.worker(&fixture.plan(5000));
-    marker(&directory.join("ready.json")).await;
+    marker(&mut fixture._dir, &directory.join("ready.json")).await;
     fixture.publish("new-commit");
-    marker(&directory.join("error.json")).await;
-    let after = status(&fixture.paths.endpoint, |v| {
+    marker(&mut fixture._dir, &directory.join("error.json")).await;
+    let after = status(&mut fixture._dir, &fixture.paths.endpoint, |v| {
         v["observation"]["work"] == "working"
     })
     .await;
@@ -612,7 +659,9 @@ async fn failed_new_process_restores_the_previous_cached_artifact_and_pause() {
     let instance = after.status["monitor"]["instance_id"].clone();
     tokio::time::sleep(Duration::from_secs(11)).await; // Two ordinary replacement scans.
     assert_eq!(
-        status(&fixture.paths.endpoint, |_| true).await.status["monitor"]["instance_id"],
+        status(&mut fixture._dir, &fixture.paths.endpoint, |_| true)
+            .await
+            .status["monitor"]["instance_id"],
         instance,
         "recovery must not repeatedly retry the same failed artifact"
     );
@@ -623,11 +672,11 @@ async fn failed_new_process_restores_the_previous_cached_artifact_and_pause() {
 
 #[tokio::test]
 async fn resident_monitor_detects_same_version_file_replacement_without_herdr_events() {
-    let fixture = Fixture::new().await;
-    let before = status(&fixture.paths.endpoint, |_| true).await;
+    let mut fixture = Fixture::new().await;
+    let before = status(&mut fixture._dir, &fixture.paths.endpoint, |_| true).await;
     let config = std::fs::read(&fixture.paths.config).unwrap();
     fixture.publish("new-commit"); // No startup, event hook or prepare-worker call.
-    let after = status(&fixture.paths.endpoint, |v| {
+    let after = status(&mut fixture._dir, &fixture.paths.endpoint, |v| {
         v["monitor"]["instance_id"] != before.status["monitor"]["instance_id"]
             && v["observation"]["work"] == "working"
     })
@@ -665,7 +714,7 @@ async fn failed_preparation_replays_activation_even_before_the_owner_was_describ
     plan.candidate = cache::stage(&source, &fixture.paths.state).unwrap();
     plan.publication.digest = plan.candidate.digest.clone();
     let directory = fixture.worker(&plan);
-    marker(&entered).await;
+    marker(&mut fixture._dir, &entered).await;
     let mut queued = fixture.registration.clone();
     queued.env.insert(
         "XDG_STATE_HOME".into(),
@@ -681,13 +730,9 @@ async fn failed_preparation_replays_activation_even_before_the_owner_was_describ
             .await
             .unwrap()
     );
-    marker(&directory.join("error.json")).await;
-    let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
-    while herdr_idle_inhibitor::runtime::update::pending(&fixture.paths).unwrap() {
-        assert!(tokio::time::Instant::now() < deadline);
-        tokio::time::sleep(Duration::from_millis(25)).await;
-    }
-    let reply = status(&fixture.paths.endpoint, |_| true).await;
+    marker(&mut fixture._dir, &directory.join("error.json")).await;
+    gate_released(&mut fixture._dir, &fixture.paths, Duration::from_secs(10)).await;
+    let reply = status(&mut fixture._dir, &fixture.paths.endpoint, |_| true).await;
     assert!(
         reply
             .details
@@ -701,7 +746,7 @@ async fn failed_preparation_replays_activation_even_before_the_owner_was_describ
 
 #[tokio::test]
 async fn queued_activation_is_removed_only_after_a_live_owner_acknowledges_it() {
-    let fixture = Fixture::new().await;
+    let mut fixture = Fixture::new().await;
     let gate = std::fs::OpenOptions::new()
         .read(true)
         .write(true)
@@ -759,7 +804,7 @@ async fn queued_activation_is_removed_only_after_a_live_owner_acknowledges_it() 
         0
     );
     assert!(
-        status(&fixture.paths.endpoint, |_| true)
+        status(&mut fixture._dir, &fixture.paths.endpoint, |_| true)
             .await
             .details
             .unwrap()
@@ -774,19 +819,15 @@ async fn queued_activation_is_removed_only_after_a_live_owner_acknowledges_it() 
 async fn unsupported_handoff_candidate_is_rejected_without_retiring_the_owner() {
     let mut fixture = Fixture::new().await;
     let original = std::fs::read(&fixture.paths.config).unwrap();
-    let before = status(&fixture.paths.endpoint, |_| true).await;
+    let before = status(&mut fixture._dir, &fixture.paths.endpoint, |_| true).await;
     let unsupported = fixture._dir.path().join("pre-handoff-application");
     std::fs::write(&unsupported, "#!/bin/sh\ncase \"$1\" in\n--version) echo 'herdr-idle-inhibitor 0.1.0';;\n_capabilities) exit 77;;\n*) exit 77;;\nesac\n").unwrap();
     std::fs::set_permissions(&unsupported, std::fs::Permissions::from_mode(0o700)).unwrap();
     fixture.candidate = cache::stage(&unsupported, &fixture.paths.state).unwrap();
     let directory = fixture.worker(&fixture.plan(1000));
-    marker(&directory.join("error.json")).await;
-    let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
-    while herdr_idle_inhibitor::runtime::update::pending(&fixture.paths).unwrap() {
-        assert!(tokio::time::Instant::now() < deadline);
-        tokio::time::sleep(Duration::from_millis(25)).await;
-    }
-    let after = status(&fixture.paths.endpoint, |_| true).await;
+    marker(&mut fixture._dir, &directory.join("error.json")).await;
+    gate_released(&mut fixture._dir, &fixture.paths, Duration::from_secs(10)).await;
+    let after = status(&mut fixture._dir, &fixture.paths.endpoint, |_| true).await;
     assert_eq!(
         after.status["monitor"]["instance_id"],
         before.status["monitor"]["instance_id"]
@@ -802,5 +843,126 @@ async fn unsupported_handoff_candidate_is_rejected_without_retiring_the_owner() 
         std::fs::read_to_string(directory.join("error.json"))
             .unwrap()
             .contains("does not support the automatic-update handoff protocol")
+    );
+}
+
+#[tokio::test]
+async fn shutdown_timeout_diagnostics_replace_startup_context_and_keep_fresh_reply() {
+    use futures_util::FutureExt;
+    let artifacts = fixtures::tempdir();
+    let mut diagnostics = Diagnostics::new(fixtures::tempdir(), Some(artifacts.path().to_owned()));
+    let endpoint = diagnostics
+        .path()
+        .join("reply.sock")
+        .to_string_lossy()
+        .into_owned();
+    diagnostics.record(
+        "wait",
+        serde_json::json!({"kind":"old startup", "deadline_seconds":10}),
+    );
+    diagnostics.record(
+        "status.last_reply",
+        serde_json::json!({"stale_startup":true}),
+    );
+    let listener = ipc::test_listener(&endpoint).unwrap();
+    let peer = tokio::spawn(async move {
+        let mut stream = listener.accept().await.unwrap();
+        let frame = herdr_idle_inhibitor::herdr::transport::read_frame(&mut stream, 1024 * 1024)
+            .await
+            .unwrap()
+            .unwrap();
+        let request: serde_json::Value = serde_json::from_slice(&frame).unwrap();
+        let status = herdr_idle_inhibitor::status::Status::unavailable(
+            "fixture_reply",
+            "fresh shutdown-loop reply",
+        );
+        let mut bytes = serde_json::to_vec(&serde_json::json!({"protocol_version":1,"request_id":request["request_id"],"status":status,"details":null,"error":null})).unwrap();
+        bytes.push(b'\n');
+        stream.write_all(&bytes).await.unwrap();
+    });
+    let result =
+        std::panic::AssertUnwindSafe(owner_stopped(&mut diagnostics, &endpoint, Duration::ZERO))
+            .catch_unwind()
+            .await;
+    assert!(result.is_err());
+    peer.await.unwrap();
+    let directory = std::fs::read_dir(artifacts.path())
+        .unwrap()
+        .next()
+        .unwrap()
+        .unwrap()
+        .path();
+    let data: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(directory.join("report.json")).unwrap()).unwrap();
+    assert_eq!(data["context"]["wait"]["kind"], "owner shutdown");
+    assert_eq!(data["context"]["wait"]["deadline_seconds"], 0);
+    assert_eq!(
+        data["context"]["status.last_reply"]["status"]["error"]["message"],
+        "fresh shutdown-loop reply"
+    );
+    assert_eq!(
+        data["context"]["status.last_reply"]["predicate_satisfied"],
+        false
+    );
+}
+
+#[tokio::test]
+async fn gate_timeout_diagnostics_replace_completed_marker_context_with_locked_gate() {
+    use futures_util::FutureExt;
+    let artifacts = fixtures::tempdir();
+    let mut diagnostics = Diagnostics::new(fixtures::tempdir(), Some(artifacts.path().to_owned()));
+    let runtime = diagnostics.path().join("runtime");
+    std::fs::create_dir(&runtime).unwrap();
+    std::fs::set_permissions(&runtime, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let gate_path = runtime.join("update.lock");
+    let gate = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create_new(true)
+        .open(&gate_path)
+        .unwrap();
+    std::fs::set_permissions(&gate_path, std::fs::Permissions::from_mode(0o600)).unwrap();
+    gate.try_lock().unwrap();
+    let paths = Paths {
+        config: diagnostics.path().join("config.toml"),
+        state: diagnostics.path().join("state"),
+        runtime,
+        endpoint: "unused".into(),
+    };
+    diagnostics.record("wait", serde_json::json!({"kind":"completed marker"}));
+    diagnostics.record(
+        "status.last_error",
+        serde_json::json!({"code":"historical startup error"}),
+    );
+    let result =
+        std::panic::AssertUnwindSafe(gate_released(&mut diagnostics, &paths, Duration::ZERO))
+            .catch_unwind()
+            .await;
+    assert!(result.is_err());
+    let directory = std::fs::read_dir(artifacts.path())
+        .unwrap()
+        .next()
+        .unwrap()
+        .unwrap()
+        .path();
+    let data: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(directory.join("report.json")).unwrap()).unwrap();
+    assert_eq!(data["context"]["wait"]["kind"], "update gate release");
+    assert_eq!(
+        data["context"]["wait"]["path"],
+        gate_path.to_string_lossy().as_ref()
+    );
+    assert_eq!(data["context"]["gate.last_pending"], true);
+    assert!(
+        data["context_sequence"]["status.last_error"]
+            .as_u64()
+            .unwrap()
+            < data["context_sequence"]["wait"].as_u64().unwrap()
+    );
+    assert!(
+        data["context_sequence"]["wait"].as_u64().unwrap()
+            < data["context_sequence"]["gate.last_pending"]
+                .as_u64()
+                .unwrap()
     );
 }

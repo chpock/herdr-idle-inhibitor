@@ -87,6 +87,37 @@ cargo test --locked --lib -- --ignored
 
 CI also builds the pinned pre-update baseline and tests migration/recovery on Linux. `scripts/test_legacy_update.py` takes explicit `--legacy` and `--current` executable paths and requires the same process-test isolation. Cross-target type checking is useful, but is not native execution or proof of filesystem replacement on another OS.
 
+## Diagnose a failing process test
+
+The shared-monitor CLI test, Linux executable-update process tests and legacy-migration script preserve failure evidence **before cleaning up their fixture processes and directories**. Successful runs create no failure artifact.
+
+By default, evidence goes to `dist/test-failures/<test-name>-<unique-suffix>/`. The failure output prints the path to `report.json`. Set `HERDR_TEST_ARTIFACTS` to choose a different destination outside the fixture directory. CI uploads these directories as `test-failures-<target>` even when the test step fails; missing artifacts do not turn a successful job into a failure.
+
+The report contains:
+
+- The failed wait or assertion context, endpoint/marker, last connection error, and last received status. Rust update waits also record their source call site and whether the status predicate matched.
+- Each directly spawned process's command, PID, observed running/exit state and exit code, plus captured stdout/stderr.
+- Executable size and SHA-256, original/next update digests, and bounded copies of fixture configuration, monitor logs, registry/publication markers and updater errors.
+- On Linux, live `/proc` CPU counters, process state, open files and file positions. These details are explicitly unavailable on macOS/Windows; portable child state, logs and executable identity still apply there.
+
+Rust reports include `context_sequence`, the recording order of each context entry. A saved connection error can predate the latest reply or the current wait; do not mistake an earlier error for the final outcome.
+
+Use the evidence to locate the failing layer, not to guess that every failure needs a larger timeout:
+
+| Observation | Next investigation |
+| --- | --- |
+| Child exited; stderr explains a startup/configuration error | Fix that startup failure before investigating polling |
+| Connection unavailable; no responding owner | Compare endpoint, process state and fixture paths; distinguish a missing listener from a terminated process |
+| Child running; query timed out | Inspect logs and Linux CPU/file positions for work still happening before IPC service; a large debug executable is one possible hashing cost, not proof of the cause |
+| Reply received but `predicate_satisfied` is false | Compare the actual reply/counters with the condition expected by the failing test |
+| Publication/ready marker missing | Compare the saved plan, expected commit/digests, registry state and worker stderr/error files |
+
+The collector makes no extra Herdr/monitor queries, never signals a PID obtained from status, and leaves test deadlines and polling intervals unchanged. Direct child handles are still killed/reaped during cleanup. Artifact-writing errors are reported separately and do not replace the original failure.
+
+Copies exclude binaries, symlink targets and full environment dumps. Text/log copies are capped at 128 files, 512 KiB per file and 8 MiB total; truncated tails and other omissions are listed in the report. Review paths/configuration before sharing an artifact. In-process transport tests print their last query error or unexpected status directly in the assertion output.
+
+This is diagnostics, not an automatic root-cause verdict. A hard kill, process abort or job termination before cleanup runs cannot guarantee a report. Regression tests exercise early child exit, an actual IPC timeout, ordinary assertion failure, cleanup and an unwritable artifact destination.
+
 ## Build the source in a bundle
 
 A binary bundle contains `matching-source.tar.gz`, including `vendor/`, `.cargo/config.toml`, the lockfile and matching project source. Extract it, enter its `herdr-idle-inhibitor-source` directory, then build:
