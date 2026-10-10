@@ -41,7 +41,7 @@ Herdr runs the source manifest's build steps when linking, so it may rebuild the
 
 If the same plugin ID is currently GitHub-installed, [disable and uninstall that installation](../README.md#disable-re-enable-or-remove) first. Do not attempt to use both copies under one Herdr configuration directory. Settings and Pause are shared application data and survive this switch. If replacing another linked checkout, use the [linked installation instructions](advanced-installation.md#linked-installation-maintenance).
 
-Keep the linked checkout at that path while registered. Open the popup and check the request using the [README steps](../README.md#2-open-status-and-settings); linking is not proof that sleep prevention is configured or working. If Hypridle also delays display-off/locking, see [Linux display troubleshooting](troubleshooting.md#linux-screen-does-not-turn-off); that tuning is optional.
+Keep the linked checkout at that path while registered. Monitoring starts automatically at Herdr server startup and on agent detection or status changes. Use the [optional manual start](../README.md#optional-manual-start) if you want it to begin immediately. Inspect the request using the [README checks](../README.md#2-open-status-and-settings); linking is not proof that sleep prevention is configured or working. If Hypridle also delays display-off/locking, see [Linux display troubleshooting](troubleshooting.md#linux-screen-does-not-turn-off); that tuning is optional.
 
 ## Change and rebuild a linked checkout
 

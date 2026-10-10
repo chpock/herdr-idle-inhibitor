@@ -120,9 +120,14 @@ async fn main() -> ExitCode {
     }
 }
 async fn open() -> anyhow::Result<()> {
-    let r = herdr_idle_inhibitor::herdr::discovery::Registration::from_env()?;
-    bootstrap::ensure(r.clone()).await?;
-    let status = popup_command(&r.herdr_bin)
+    let bin = std::env::var_os("HERDR_BIN_PATH")
+        .ok_or_else(|| anyhow::anyhow!("HERDR_BIN_PATH is missing; invoke show through Herdr"))?;
+    let bin = Path::new(&bin);
+    anyhow::ensure!(
+        bin.is_absolute() && bin.is_file(),
+        "Herdr binary must exist at an absolute path"
+    );
+    let status = popup_command(bin)
         .status()
         .await
         .map_err(|error| anyhow::anyhow!("Cannot execute Herdr popup command: {error}"))?;
@@ -150,6 +155,24 @@ fn popup_command(herdr_bin: &Path) -> tokio::process::Command {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn manifest_separates_explicit_start_from_show_and_reuses_the_startup_role() {
+        let manifest: toml::Value = toml::from_str(include_str!("../herdr-plugin.toml")).unwrap();
+        let actions = manifest["actions"].as_array().unwrap();
+        let start = actions
+            .iter()
+            .find(|a| a["id"].as_str() == Some("start"))
+            .expect("explicit monitor start action is missing");
+        let show = actions
+            .iter()
+            .find(|a| a["id"].as_str() == Some("show"))
+            .unwrap();
+        assert_eq!(start["command"], manifest["startup"][0]["command"]);
+        assert_eq!(start["command"][1].as_str(), Some("_ensure"));
+        assert_eq!(show["command"][1].as_str(), Some("_open"));
+        assert_ne!(start["command"], show["command"]);
+    }
 
     #[test]
     fn popup_command_uses_named_flags_and_the_manifest_entrypoint() {

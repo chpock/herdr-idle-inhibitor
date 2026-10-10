@@ -18,7 +18,7 @@ On Windows the OS Known Folder location is authoritative; changing the text of a
 
 The log/state directory also contains `bin/` (private cached executables) and `updates/` (automatic-update control files). Long-lived monitors run from these copies so the installed checkout remains replaceable. These files are not configuration or agent history; do not remove them while monitoring or an update is active.
 
-A missing config is initialized with defaults when monitoring is activated, never by `status --json`. Invalid startup configuration prevents acquisition. A read-only status query does not create these directories or files.
+A missing config is initialized with defaults when the monitor starts, never by `status --json`. Invalid startup configuration prevents acquisition. A read-only status query does not create these directories or files.
 
 ## Default file
 
@@ -80,7 +80,7 @@ These are illustrative paths, not defaults. URLs, NULs and Windows remote UNC pa
 - If the file changed externally, a popup save is rejected until you Reload; stale popup state cannot silently overwrite your edits.
 - Pause applies in memory even if saving fails, with **PAUSE NOT SAVED** visible. Resume requires successful saving.
 
-If the popup is unavailable, [disable the plugin and wait for the monitor to stop](../README.md#disable-re-enable-or-remove), edit the file, then re-enable it and open the popup as described there. In a multi-root setup, disable it in every Herdr configuration directory so the shared process actually stops. The [status command](status-api.md#finding-the-executable) can confirm unavailability. This is maintenance for loading manual changes, not an update procedure. Another event or a status query does not hot-reload a running monitor.
+To load manual edits when Settings is unavailable, [disable the plugin and wait for the monitor to stop](../README.md#disable-re-enable-or-remove), edit the file, then re-enable it. The next automatic start loads the edited file; the [optional manual start](../README.md#optional-manual-start) loads it immediately. In a multi-root setup, disable it in every Herdr configuration directory so the shared process actually stops. The [status command](status-api.md#finding-the-executable) can confirm unavailability. This is maintenance for loading manual changes, not an update procedure. Another event or a status query does not hot-reload a running monitor.
 
 The application replaces configuration through a temporary file in the same directory. Unix configuration directories/files are user-private. No database or native ownership flag is persisted.
 
@@ -93,4 +93,4 @@ Advanced environments may set these before starting the first monitor:
 | `HERDR_IDLE_INHIBITOR_CONFIG` | Absolute path to the configuration file |
 | `HERDR_IDLE_INHIBITOR_STATE` | Absolute path to the log/state directory |
 
-Relative paths are rejected. Overrides apply to the monitor at startup. An already-running monitor continues using its own paths; another popup or Herdr root does not create a second configuration authority. To relocate them, stop the monitor first and provide consistent environment settings for reactivation. Do not copy runtime locks or infer power-request ownership from saved files.
+Relative paths are rejected. Overrides apply to the monitor at startup. An already-running monitor continues using the paths it started with. To relocate them, stop the monitor first and provide consistent environment settings for reactivation. Do not copy runtime locks or infer power-request ownership from saved files.

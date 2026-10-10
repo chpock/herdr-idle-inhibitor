@@ -44,6 +44,12 @@ title = "Idle Inhibitor: status and settings"
 contexts = ["global", "workspace", "pane"]
 command = ["./target/release/herdr-idle-inhibitor", "_open"]
 
+[[actions]]
+id = "start"
+title = "Idle Inhibitor: start monitoring"
+contexts = ["global", "workspace", "pane"]
+command = ["./target/release/herdr-idle-inhibitor", "_ensure"]
+
 [[panes]]
 id = "status"
 title = "Idle Inhibitor"

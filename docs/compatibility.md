@@ -64,7 +64,7 @@ Microsoft documents the conditions in [PowerSetRequest](https://learn.microsoft.
 
 Native resources normally disappear after their owner terminates, subject to the precise PowerDevil exception above. A frozen/stopped process is not a dead process and can keep a request; application deadlines cannot execute while it is stopped.
 
-Herdr does not supervise the detached monitor. A later startup/event/action can reactivate it, but no finite restart guarantee exists without another event. Fresh observation is required after sleep/recovery; the plugin does not restore remembered work from disk. See [How it works](behavior.md#timing-and-recovery).
+Herdr does not supervise the detached monitor. A later server startup or matching agent/lifecycle event starts it again; the optional `start` action requests an immediate launch. There is no finite automatic restart guarantee without another event. Fresh observation is required after sleep/recovery; the plugin does not restore remembered work from disk. See [How it works](behavior.md#timing-and-recovery).
 
 ## Distribution and OS security
 

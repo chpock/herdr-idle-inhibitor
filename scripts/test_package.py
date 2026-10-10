@@ -15,6 +15,10 @@ class ManifestTests(unittest.TestCase):
         self.assertEqual(source["build"][0]["command"], ["cargo", "build", "--release", "--locked", "--target-dir", "target"])
         self.assertEqual(source["build"][1]["command"], ["./target/release/herdr-idle-inhibitor", "_prepare_update"])
         self.assertEqual(len(source["build"]), 2)
+        actions = {action["id"]: action for action in source["actions"]}
+        self.assertEqual(actions["show"]["command"][1:], ["_open"])
+        self.assertEqual(actions["start"]["command"], source["startup"][0]["command"])
+        self.assertEqual(actions["start"]["command"][1:], ["_ensure"])
         self.assertEqual(source["min_herdr_version"], "0.9.3")
         self.assertEqual({r["on"] for r in source["events"]}, {"pane.agent_status_changed", "pane.agent_detected", "pane.exited", "pane.closed", "workspace.created", "workspace.closed"})
         for target, (platform, filename) in TARGETS.items():
@@ -28,6 +32,8 @@ class ManifestTests(unittest.TestCase):
                 generated = tomllib.loads(bundle_manifest(source, target))
                 self.assertEqual(generated, expected)
                 self.assertEqual(generated["actions"][0]["id"], "show")
+                generated_actions = {action["id"]: action for action in generated["actions"]}
+                self.assertEqual(generated_actions["start"]["command"], [f"./target/release/{filename}", "_ensure"])
                 self.assertEqual(generated["panes"][0]["id"], "status")
                 self.assertEqual(generated["panes"][0]["placement"], "popup")
                 for section in ["actions", "panes"]:

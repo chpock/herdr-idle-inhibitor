@@ -16,19 +16,21 @@ Exit 0 can include partial observation, Pause or a backend failure. Exit 3 means
 
 ## Popup does not open
 
-The `show` action activates the shared monitor, then asks Herdr to open the plugin's `status` pane. An attached Herdr UI and an available popup slot are required.
+The `show` action asks Herdr to open the plugin's Status and Settings window. An attached Herdr UI and an available popup slot are required.
 
 Inspect Herdr's own error output in the action log. The plugin reports a subprocess exit status or launch error; it does not assume that every rejection means another popup is open. For `ui_busy`, close the other popup and retry. If no UI is attached, attach one before invoking the action.
 
-Monitor activation precedes the popup request. Use the read-only status command to check its state: a missing popup does not prove that monitoring stopped, and activation does not prove that a native request was accepted. Internal underscore roles are not a supported alternative management API.
+When the window is unavailable, use the [read-only status command](status-api.md#finding-the-executable) to inspect monitoring and the native sleep-prevention request.
 
 ## Monitor unavailable
 
-A standalone status query never starts the monitor. Source installation prepares automatic activation when running Herdr sessions are discoverable. Enabling an existing installation or linking a prebuilt bundle may still need an action, qualifying event or server startup.
+Check that the plugin is enabled with `herdr plugin list`. Monitoring starts automatically at Herdr server startup and when agents are detected or their status changes. Re-enabling the plugin takes effect on the next such event; Herdr 0.9.3 does not run startup commands immediately on `enable`.
 
-Check enabled state with `herdr plugin list`, then [open the popup to activate monitoring](../README.md#2-open-status-and-settings). If startup failed, inspect plugin command logs and `monitor.log`. A live but unresponsive owner is an activation error, not permission to start another authority, delete a lock or kill a guessed PID.
+If you want to start monitoring now rather than wait for an event, use the [optional manual start](../README.md#optional-manual-start). The **Start monitoring** control is also available when Status reports **Monitor unavailable**. Starting leaves Pause unchanged. Use the documented action or control rather than internal underscore-prefixed commands.
 
-A monitor can exit after all installations are disabled, after established absence of running servers, or after prolonged loss of observation. A crash is not automatically supervised; a later startup/event/action is needed.
+If startup failed, inspect plugin command logs and `monitor.log`; Herdr's action acknowledgment confirms launch, not success. A live but unresponsive owner is an activation error, not permission to start another authority, delete a lock or kill a guessed PID.
+
+A source installation also prepares automatic startup when running Herdr sessions are discoverable; a prebuilt bundle has no install-time preparation step. A monitor can exit after all installations are disabled, after established absence of running servers, or after prolonged loss of observation. A crash is not automatically supervised; the next matching event or server startup launches it again.
 
 ## Automatic update
 
@@ -53,7 +55,7 @@ Do not delete locks or terminate a PID copied from status. Compatible-code recov
 | `config changed externally` | Reload your manual edits before saving from the popup |
 | Resume fails | Fix saving first; failed persistence does not enable new acquisition |
 
-There is no automatic file watcher. See [editing rules](configuration.md#editing-and-persistence); status queries do not Reload. If the popup is unavailable, [disable and reactivate the monitor](../README.md#disable-re-enable-or-remove) to load manual changes rather than expecting a hidden hot reload.
+There is no automatic file watcher. See [editing rules](configuration.md#editing-and-persistence); status queries do not Reload. If Settings is unavailable, follow the [manual editing procedure](configuration.md#editing-and-persistence) to load changes on the monitor's next start.
 
 ## Linux setup or backend failure
 

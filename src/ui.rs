@@ -164,7 +164,7 @@ pub fn draw(
             let paused = status.control.as_ref().is_some_and(|c| c.paused);
             for (i, name) in [
                 if !status.available {
-                    "Retry / activate"
+                    "Start monitoring"
                 } else if paused {
                     "Resume"
                 } else {
@@ -425,10 +425,8 @@ pub async fn run() -> anyhow::Result<()> {
                     0 if !status.available => {
                         match crate::herdr::discovery::Registration::from_env() {
                             Ok(r) => match bootstrap::ensure(r).await {
-                                Ok(_) => notice = "Activated".into(),
-                                Err(_) => {
-                                    notice = "Activation failed; inspect Herdr plugin logs".into()
-                                }
+                                Ok(_) => notice = "Monitoring started".into(),
+                                Err(_) => notice = "Start failed; inspect Herdr plugin logs".into(),
                             },
                             Err(_) => {
                                 notice =

@@ -6,9 +6,17 @@ The [README](../README.md#everyday-use) covers popup controls and daily use. Thi
 
 ## Monitoring scope
 
-One background monitor serves the current OS user's registered local Herdr configuration directories and endpoints. It discovers named/default servers under those directories and combines their work regardless of focused pane, workspace, attached UI or an open plugin popup. Multiple enabled installations share that monitor and its preferences; disabling one does not stop another enabled registration.
+One background monitor serves the current OS user's registered local Herdr configuration directories and endpoints. It discovers named/default servers under those directories and combines their work across panes and workspaces, including sessions with no attached UI. Multiple enabled installations share that monitor and its preferences; disabling one does not stop another enabled registration.
 
 The plugin observes Herdr's reports, not CPU activity, terminal text or agent-specific subprocesses. A detached/background/remote task that Herdr does not report as working is not independent evidence. Custom servers under an unregistered configuration directory are not automatically found: activate their plugin registration or configure [additional local endpoints](configuration.md#additional-local-endpoints). The monitor does not control remote hosts or follow other users' agents.
+
+## Monitor lifecycle
+
+While the plugin is enabled, Herdr starts the monitor automatically at server startup and on agent detection or status changes. Pane exit/closure and workspace creation/closure also trigger registration and refresh. These hooks use the same idempotent startup operation: an existing monitor is reused rather than duplicated.
+
+In Herdr 0.9.3, `enable` updates the plugin registry without running startup hooks immediately. After re-enabling, the next matching event or server startup starts monitoring automatically. The [manual start command](../README.md#optional-manual-start) is optional; use it if you want an immediate launch without waiting for an event. Starting the monitor leaves Pause unchanged.
+
+Disabling all registered installations releases the sleep-prevention request and stops the monitor. Another enabled installation keeps the shared monitor alive. For temporary stops, use Pause: it releases the request while continuing to observe agents.
 
 ## What counts as work
 
@@ -62,11 +70,11 @@ After sleep or a large execution gap, stale observations are invalidated. Fresh 
 
 The monitor normally exits after 30 seconds with no running servers once discovery/retirement establishes that state, or after 120 seconds without useful observation/discovery recovery. It also exits when all tracked installations lose eligibility. Pause keeps it alive while Herdr remains present, but failed enabled-state checks cannot keep an old request alive indefinitely.
 
-Herdr does not supervise a crashed detached monitor. A later server startup, qualifying event, popup action or explicit **Retry / activate** can reactivate it; there is no finite restart guarantee if no further event occurs. A frozen process differs from a terminated one: its resource can remain held until it resumes or terminates. See the [PowerDevil cleanup exception](compatibility.md#powerdevil-suppressed-request-cleanup).
+Herdr does not supervise a crashed detached monitor. A later server startup or matching event starts it again; the optional `start` action requests an immediate launch. There is no finite automatic restart guarantee if no further event occurs. A frozen process differs from a terminated one: its resource can remain held until it resumes or terminates. See the [PowerDevil cleanup exception](compatibility.md#powerdevil-suppressed-request-cleanup).
 
-## Popup and read-only consumers
+## User interface and read-only consumers
 
-Closing the popup never stops the monitor. Passive popup refresh reads monitor state; it does not independently query Herdr or restart a missing monitor. **Retry / activate** is an explicit action, separate from passive refresh.
+The `show` action opens the Status and Settings window. The interface displays monitor state and provides controls for Pause, preferences and diagnostics. Its periodic refresh reads snapshots from the monitor; configuration changes are applied only through explicit user controls.
 
 A standalone `status --json` query also never starts monitoring, registers a session, reloads settings, or acquires/releases a request. It reads the existing monitor and returns unavailable/unknown when no compatible monitor answers. Public consumers poll; there is no watch stream, management API, HTTP endpoint, remote selector or command callback. An external program owns its own actions and must not treat uncertainty as permission to sleep. See [Status API](status-api.md).
 
@@ -84,7 +92,7 @@ The resident monitor also detects installed executable or registered-directory c
 
 During replacement, the old process releases its native resource before giving up shared-monitor ownership. The new process inherits registered/discovered sessions and effective Pause, including an unsaved live Pause, and loads settings from the same configuration file. It then obtains fresh observations rather than treating old work evidence as permission to acquire. Configuration files are not rewritten to transfer state; invalid startup settings still prevent acquisition.
 
-This is not a zero-gap operation: this plugin's sleep request can briefly be absent and JSON status can temporarily be unavailable. Reopening a popup does not clear Pause.
+This is not a zero-gap operation: this plugin's sleep request can briefly be absent and JSON status can temporarily be unavailable.
 
 ### Failure and compatibility
 

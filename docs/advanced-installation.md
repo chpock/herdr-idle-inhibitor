@@ -52,7 +52,8 @@ Linux CI binaries use **glibc 2.39**; older libc compatibility is not promised. 
 
    On Windows, use a quoted absolute path such as `"C:\Users\you\Plugins\herdr-idle-inhibitor"`.
 
-6. Follow [opening and checking the plugin](../README.md#2-open-status-and-settings). A bundle has no source-build preparation step, so explicitly opening the popup is the reliable way to activate it in an already-running Herdr session.
+6. Monitoring starts automatically at the next agent detection or status change, or when a Herdr server starts. Linking a bundle into an already-running session does not run startup hooks immediately. If you want monitoring to begin now, the [manual start command](../README.md#optional-manual-start) is optional and preserves Pause.
+7. Inspect status and the native request using the [README checks](../README.md#2-open-status-and-settings).
 
 Keep the linked directory while the plugin is registered. Preserve the executable layout and generated manifest: replacing it with the source manifest reintroduces a Cargo build requirement. Windows bundle entrypoints explicitly name the `.exe`.
 
@@ -90,4 +91,4 @@ For a linked source checkout, follow [the rebuild instructions](development.md#c
 herdr plugin unlink herdr-idle-inhibitor
 ```
 
-You can then remove the linked directory or install another type normally. Preferences and logs are not deleted. An enabled registration in another Herdr configuration directory can keep the shared monitor alive.
+You can then remove the linked directory or install another type normally. On Windows, close any open **Idle Inhibitor** window before deleting the directory so its installed `.exe` can be removed. Preferences and logs are not deleted. An enabled registration in another Herdr configuration directory can keep the shared monitor alive.

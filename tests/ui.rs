@@ -152,3 +152,24 @@ fn resize_only_mode_accepts_dismissal_but_no_hidden_control_actions() {
         &KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE)
     ));
 }
+
+#[test]
+fn unavailable_ui_labels_bootstrap_as_an_explicit_start_control() {
+    let status = Status::unavailable("monitor_unavailable", "Monitor unavailable");
+    for (width, height) in [(50, 10), (80, 22)] {
+        let mut terminal =
+            ratatui::Terminal::new(ratatui::backend::TestBackend::new(width, height)).unwrap();
+        terminal
+            .draw(|f| draw(f, &status, None, View::Main, 0, ""))
+            .unwrap();
+        let screen: String = terminal
+            .backend()
+            .buffer()
+            .content
+            .iter()
+            .map(|c| c.symbol())
+            .collect();
+        assert!(screen.contains("[Start monitoring]"), "{screen}");
+        assert!(!screen.contains("activate"), "{screen}");
+    }
+}

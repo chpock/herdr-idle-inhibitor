@@ -54,6 +54,29 @@ async fn actual_status_is_read_only_and_concurrent_processes_have_one_owner() {
     assert_eq!(value["available"], false);
     assert!(!dir.path().join("config").exists());
     assert!(!dir.path().join("state").exists());
+    #[cfg(unix)]
+    {
+        // A fully contextual SHOW must not bootstrap an owner; context is optional too.
+        check_popup_open_path(dir.path(), &command);
+        let after_show = command().args(["status", "--json"]).output().unwrap();
+        assert_eq!(after_show.status.code(), Some(3));
+        assert!(!dir.path().join("config").exists());
+        assert!(!dir.path().join("state").exists());
+        let without_registration = command()
+            .arg("_open")
+            .env("HERDR_BIN_PATH", "/usr/bin/true")
+            .env_remove("HERDR_SOCKET_PATH")
+            .env_remove("HERDR_PLUGIN_ROOT")
+            .output()
+            .unwrap();
+        assert!(
+            without_registration.status.success(),
+            "{}",
+            String::from_utf8_lossy(&without_registration.stderr)
+        );
+        assert!(!dir.path().join("config").exists());
+        assert!(!dir.path().join("state").exists());
+    }
     let mut children = Children(vec![]);
     for _ in 0..4 {
         children.0.push(
@@ -111,18 +134,89 @@ async fn actual_status_is_read_only_and_concurrent_processes_have_one_owner() {
     assert_eq!(paused.status["control"]["paused"], true);
     #[cfg(unix)]
     {
+        let before_popup = ipc::query(&endpoint, Operation::GetStatus { details: true })
+            .await
+            .unwrap();
         check_popup_open_path(dir.path(), &command);
-        let after_popup = ipc::query(&endpoint, Operation::GetStatus { details: false })
+        let after_popup = ipc::query(&endpoint, Operation::GetStatus { details: true })
             .await
             .unwrap();
         assert_eq!(after_popup.status["control"]["paused"], true);
+        for key in [
+            "hints_received",
+            "discovery_attempts",
+            "snapshot_initial",
+            "snapshot_poll",
+            "snapshot_hook",
+            "native_acquires",
+            "native_releases",
+        ] {
+            assert_eq!(
+                after_popup.status["diagnostics"]["counters"][key],
+                before_popup.status["diagnostics"]["counters"][key],
+                "SHOW induced {key}"
+            );
+        }
+        assert!(
+            after_popup
+                .details
+                .unwrap()
+                .runtime
+                .unwrap()
+                .registrations
+                .is_empty()
+        );
+
+        // Only the separately named START action may register and refresh this root.
+        let manifest: toml::Value = toml::from_str(include_str!("../herdr-plugin.toml")).unwrap();
+        let start = manifest["actions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|action| action["id"].as_str() == Some("start"))
+            .expect("an explicit start action must be available independently of SHOW");
+        let arguments = dir.path().join("popup-arguments");
+        std::fs::remove_file(&arguments).unwrap();
+        let started = command()
+            .args(
+                start["command"].as_array().unwrap()[1..]
+                    .iter()
+                    .map(|arg| arg.as_str().unwrap()),
+            )
+            .env("HERDR_BIN_PATH", dir.path().join("fake-herdr"))
+            .env("HERDR_SOCKET_PATH", dir.path().join("herdr.sock"))
+            .env("HERDR_PLUGIN_ROOT", dir.path())
+            .output()
+            .unwrap();
+        assert!(
+            started.status.success(),
+            "{}",
+            String::from_utf8_lossy(&started.stderr)
+        );
+        assert!(!arguments.exists(), "START opened the popup");
+        let after_start = ipc::query(&endpoint, Operation::GetStatus { details: true })
+            .await
+            .unwrap();
+        assert_eq!(after_start.status["control"]["paused"], true);
+        assert_eq!(after_start.status["control"]["pause_persisted"], true);
         assert_eq!(
-            after_popup.status["diagnostics"]["counters"]["native_acquires"],
+            after_start.status["diagnostics"]["counters"]["hints_received"],
+            1
+        );
+        assert_eq!(
+            after_start.status["diagnostics"]["counters"]["native_acquires"],
             0
         );
         assert_eq!(
-            after_popup.status["diagnostics"]["counters"]["native_releases"],
+            after_start.status["diagnostics"]["counters"]["native_releases"],
             0
+        );
+        let registrations = after_start.details.unwrap().runtime.unwrap().registrations;
+        assert_eq!(registrations.len(), 1);
+        assert_eq!(registrations[0].plugin_root, dir.path());
+        assert_eq!(
+            registrations[0].endpoint,
+            dir.path().join("herdr.sock").to_str().unwrap()
         );
     }
     drop(children);
