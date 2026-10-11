@@ -79,6 +79,12 @@ jobs:
         run: cargo clippy --all-targets --locked -- -D warnings
       - name: Unit and integration tests
         run: cargo test --locked
+      # Default tests use CPU-dispatched SHA. Exercise software SHA as well so
+      # update-test deadlines do not depend on the runner's SHA instructions.
+      # This feature is invocation-local, not enabled for release/bundle builds.
+      - name: Linux update process tests with software SHA
+        if: runner.os == 'Linux'
+        run: cargo test --locked --test upgrade_process --features sha2/force-soft
       - name: Native request/assertion and notification lifecycle probes
         if: runner.os == 'Windows' || runner.os == 'macOS'
         run: cargo test --locked --lib -- --ignored

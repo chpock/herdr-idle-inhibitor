@@ -87,6 +87,32 @@ cargo test --locked --lib -- --ignored
 
 Linux process tests cover automatic executable replacement, state handover and recovery against captured Herdr responses. Cross-target type checking is useful, but is not native execution or proof of filesystem replacement on another OS.
 
+### Software SHA in process tests
+
+`Cargo.toml` optimizes **only `sha2` in the test profile** (`opt-level = 3`). This is intentional: update process tests execute Cargo's test-built application and hash real executables while detecting, caching, verifying and starting a replacement. Removing debug symbols reduces file size but does not optimize SHA-256. Automatic detection can already consume part of the unchanged ten-second test deadline because its scan interval is five seconds; repeated unoptimized hashes add CPU work unrelated to the behavior under test.
+
+This was added after [Linux CI run 38061716775](https://github.com/chpock/herdr-idle-inhibitor/actions/runs/38061716775), on source `9e905398aaa32cc7f2b90db6f8187741f0ed481f`, failed `resident_monitor_detects_same_version_file_replacement_without_herdr_events`. The saved report showed that the previous owner had exited successfully and the replacement was responding, but no discovery/snapshot attempt had started at its last reply. Its reported uptime includes executable hashing before the scheduler starts; uptime alone is not evidence of timer starvation.
+
+Controlled Linux checks on four CPUs, without source changes or longer deadlines, established:
+
+- The ordinary parallel run passed all 14 update process tests.
+- Forcing the supported `sha2/force-soft` backend reproduced the same ten-second assertion failure **with just that test running**. Concurrent fixtures were not necessary. In this reproduction the previous monitor was still working and the updater had reached candidate verification; this was an earlier phase than the original CI failure.
+- Optimizing only the test-profile `sha2` dependency made all 14 process tests pass with forced software SHA and the ordinary parallel runner.
+
+These results establish a reproducible sensitivity to unoptimized hashing, not the original runner's CPU features or exact time distribution: those were not captured. Optimization also changes generated executable bytes/size, so the experiment does not isolate compression throughput alone. It does not establish a universal update-latency guarantee or a configuration-reload defect.
+
+The override uses [Cargo's package-specific profiles](https://doc.rust-lang.org/cargo/reference/profiles.html#overrides). Application code remains at the normal test optimization level; debug assertions, overflow checks, test deadlines, parallel execution, real SHA-256 checks and handover/Pause/fresh-observation assertions remain enabled and unchanged. Release settings are unchanged; release already optimizes this dependency. This is not a reason to skip hashes, serialize tests or increase deadlines when a future failure occurs.
+
+CI retains the ordinary suite and additionally runs all Linux update process tests with `--features sha2/force-soft`. This exercises the software path even on runners with hardware SHA instructions. The feature applies only to that Cargo invocation, not to subsequent release builds or bundles. To reproduce safely on a workstation with an active monitor:
+
+```sh
+bwrap --bind / / --tmpfs /tmp --dev-bind /dev /dev --proc /proc \
+  --unshare-pid --die-with-parent \
+  cargo test --locked --test upgrade_process --features sha2/force-soft
+```
+
+Keep the same isolation precautions described above. A failure still needs its own [diagnostic evidence](#diagnose-a-failing-process-test); this build setting is not a blanket classification of intermittent failures.
+
 ## Diagnose a failing process test
 
 The shared-monitor CLI test and Linux executable-update process tests preserve failure evidence **before cleaning up their fixture processes and directories**. Successful runs create no failure artifact.

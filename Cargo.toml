@@ -45,3 +45,12 @@ jsonschema = { version = "0.45", default-features = false }
 [profile.release]
 lto = "thin"
 strip = true
+
+# Process tests hash real executables several times during monitor replacement.
+# Unoptimized software SHA can exhaust their deadlines even without concurrency;
+# stripping debug symbols does not optimize the hashing code. Optimize only this
+# test dependency, retaining real identity checks and unchanged test deadlines.
+# Application code, debug assertions, and release settings are not changed.
+# Evidence and the software-backend regression: docs/development.md#software-sha-in-process-tests.
+[profile.test.package.sha2]
+opt-level = 3
